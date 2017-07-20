@@ -1,0 +1,20 @@
+{
+  "name": "slug-storage",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./index.js",
+    "test": "mocha tests"
+  },
+  "author": "Anton Fisher <a.fschr@gmail.com> (http://antonfisher.com)",
+  "license": "MIT",
+  "dependencies": {
+    "async": "2.5.0",
+    "ftpd": "git+https://github.com/nodeftpd/nodeftpd.git"
+  },
+  "devDependencies": {
+    "expect.js": "0.3.1",
+    "mocha": "3.4.2"
+  }
+}
