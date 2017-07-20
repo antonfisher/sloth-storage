@@ -23,3 +23,23 @@ The idea is to build drive distributed storage system with FTP interface on Node
 4Gb USB-drive -|     *-----------------------*
 ```
 ... or 10Gb storage (2 copies of each file).
+
+
+## Modules HierarchyNode.js 
+```
+            +--------+
+      +-----+ daemon +------+
+      |     +--------+      |
+      |                     |
++-----v------+        +-----v------+
+| replicator |        | FTP server |
++---------+--+        +-----+------+
+          |                 |
+          |       +---------v----------+
+          |       | mergeFs API module |
+          |       +---+----------------+
+          |           |
+       +--v-----------v--+
+       | devices manager |
+       +-----------------+
+```
