@@ -93,6 +93,22 @@ describe('mergedFs', () => {
     });
   });
 
+  describe('#rmdir()', () => {
+    it('Should remove existing directory', (done) => {
+      mergedFs.rmdir(join(testFsPath, 'dir2'), (err) => {
+        expect(err).to.be(null);
+        done();
+      });
+    });
+
+    it('Should not return error for non-existing directory', (done) => {
+      mergedFs.rmdir(join(testFsPath, 'dir-not-exist'), (err) => {
+        expect(err).to.be(null);
+        done();
+      });
+    });
+  });
+
   describe('#exists()', () => { // this method is deprecated in node v8
     it('Should return TRUE for existing file', (done) => {
       mergedFs.exists(join(testFsPath, 'file1.txt'), (res) => {

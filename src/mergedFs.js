@@ -100,15 +100,21 @@ class MergedFs {
     );
   }
 
+  rmdir(path, callback) {
+    const relativePath = this._getRelativePath(path);
+
+    async.each(
+      this.devicesManager.getDevices().map(d => join(d, relativePath)),
+      (item, done) => fs.rmdir(item, (err) => done(err && err.code === 'ENOENT' ? null : err)),
+      callback
+    );
+  }
+
   //readFile(relativePath, ...callbacks) {
   //  console.log('-- readFile', arguments);
   //  callbacks.slice(-1)[0](new Error('Not found'));
   //}
   //
-  //rmdir(relativePath, callback) {
-  //  console.log('-- rmdir', arguments);
-  //  callback(null);
-  //}
   //
   //unlink(relativePath, callback) {
   //  console.log('-- unlink', arguments);
