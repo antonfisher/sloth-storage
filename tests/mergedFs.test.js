@@ -93,12 +93,40 @@ describe('mergedFs', () => {
     });
   });
 
+  describe('#exists()', () => { // this method is deprecated in node v8
+    it('Should return TRUE for existing file', (done) => {
+      mergedFs.exists(join(testFsPath, 'file1.txt'), (res) => {
+        expect(res).to.be.an('boolean');
+        expect(res).to.be(true);
+        done();
+      });
+    });
+
+    it('Should return FALSE for not existing file', (done) => {
+      mergedFs.exists(join(testFsPath, 'file-not-exist.txt'), (res) => {
+        expect(res).to.be.an('boolean');
+        expect(res).to.be(false);
+        done();
+      });
+    });
+  });
+
   describe('#stat()', () => {
     it('Should return stat for file', (done) => {
       mergedFs.stat(join(testFsPath, 'file1.txt'), (err, res) => {
         expect(res).to.be.an('object');
         expect(res).to.have.key('atime');
         done(err);
+      });
+    });
+
+    it('Should return error for non-existion file', (done) => {
+      mergedFs.stat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
+        expect(res).to.be(undefined);
+        expect(err).to.be.an('object');
+        expect(err).to.have.key('code');
+        expect(err.code).to.be('ENOENT');
+        done();
       });
     });
   });

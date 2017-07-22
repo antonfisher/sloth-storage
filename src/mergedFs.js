@@ -5,7 +5,7 @@ const async = require('async');
 class MergedFs {
   constructor(devicesManager) {
     if (!devicesManager) {
-      throw new Error('No "devicesManager" parameter specified');
+      throw new Error('No "devicesManager" parameter');
     }
 
     this.devicesManager = devicesManager;
@@ -27,11 +27,11 @@ class MergedFs {
       this.devicesManager.getDevices(),
       (dev, done) => fs.access(join(dev, relativePath), (err) => done(null, !err)),
       (err, resolvedPath) => {
-        //console.log('-- resolvePath result:', err, resolvedPath);
-        callback(
-          (err ? new Error(`Failed to resolve path "${relativePath}", ERR: ${err}`) : null),
-          resolvedPath
-        );
+        if (!err && typeof resolvedPath === 'undefined') {
+          err = new Error(`Failed to resolve path "${relativePath}", file not exist`);
+          err.code = 'ENOENT';
+        }
+        callback(err, resolvedPath);
       }
     );
   }
@@ -45,11 +45,10 @@ class MergedFs {
   //  console.log('-- createWriteStream', arguments);
   //  throw new Error('Unimplemented');
   //}
-  //
-  //exists(relativePath, callback) {
-  //  console.log('-- exists', arguments);
-  //  callback(null, false);
-  //}
+
+  exists(path, callback) {
+    this._resolvePath(path, (err, resolvedPath) => process.nextTick(() => callback(Boolean(resolvedPath))));
+  }
 
   stat(path, callback) {
     this._resolvePath(path, (err, resolvedPath) => {
