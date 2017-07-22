@@ -20,7 +20,7 @@ describe('mergedFs', () => {
     exec(`mkdir -p ./${testFsDir}/dev1/dir{1,2}`);
     exec(`mkdir -p ./${testFsDir}/dev2/dir{2,3}`);
     exec(`touch ./${testFsDir}/dev1/file1.txt`);
-    exec(`touch ./${testFsDir}/dev2/file2.txt`);
+    exec(`echo 'content' > ./${testFsDir}/dev2/file2.txt`);
 
     devicesManager = new DevicesManager(testFsPath);
     mergedFs = new MergedFs(devicesManager);
@@ -139,7 +139,35 @@ describe('mergedFs', () => {
     it('Should return error for non-existion file', (done) => {
       mergedFs.stat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(res).to.be(undefined);
-        expect(err).to.be.an('object');
+        expect(err).to.be.an(Error);
+        expect(err).to.have.key('code');
+        expect(err.code).to.be('ENOENT');
+        done();
+      });
+    });
+  });
+
+  describe('#readFile()', () => {
+    it('Should read existing file', (done) => {
+      mergedFs.readFile(join(testFsPath, 'file2.txt'), (err, data) => {
+        expect(err).to.be(null);
+        expect(data).to.be.a(Buffer);
+        expect(data.toString()).to.be('content\n');
+        done(err);
+      });
+    });
+
+    it('Should support enconding parameter', (done) => {
+      mergedFs.readFile(join(testFsPath, 'file2.txt'), 'utf8', (err, data) => {
+        expect(err).to.be(null);
+        expect(data).to.be('content\n');
+        done(err);
+      });
+    });
+
+    it('Should return error for non-existing file', (done) => {
+      mergedFs.readFile(join(testFsPath, 'file-not-exist.txt'), (err, data) => {
+        expect(err).to.be.a(Error);
         expect(err).to.have.key('code');
         expect(err.code).to.be('ENOENT');
         done();

@@ -110,12 +110,20 @@ class MergedFs {
     );
   }
 
-  //readFile(relativePath, ...callbacks) {
-  //  console.log('-- readFile', arguments);
-  //  callbacks.slice(-1)[0](new Error('Not found'));
-  //}
-  //
-  //
+  readFile(path, config, callback) {
+    if (!callback) {
+      callback = config;
+      config = {};
+    }
+
+    const relativePath = this._getRelativePath(path);
+
+    async.tryEach(
+      this.devicesManager.getDevices().map(dev => (done) => fs.readFile(join(dev, relativePath), config, done)),
+      callback
+    );
+  }
+
   //unlink(relativePath, callback) {
   //  console.log('-- unlink', arguments);
   //  callback(null);
