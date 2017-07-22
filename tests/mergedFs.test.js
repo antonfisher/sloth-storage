@@ -91,6 +91,8 @@ describe('mergedFs', () => {
         done(err);
       });
     });
+
+    xit('Should return ENOENT error for non-existing directory');
   });
 
   describe('#rmdir()', () => {
@@ -165,10 +167,33 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return error for non-existing file', (done) => {
+    it('Should return ENOENT error for non-existing file', (done) => {
       mergedFs.readFile(join(testFsPath, 'file-not-exist.txt'), (err, data) => {
         expect(err).to.be.a(Error);
         expect(err).to.have.key('code');
+        expect(err.code).to.be('ENOENT');
+        done();
+      });
+    });
+  });
+
+  describe('#unlink()', () => {
+    it('Should remove existing file', (done) => {
+      const filePath = join(testFsPath, 'file2.txt');
+      mergedFs.unlink(filePath, (err) => {
+        expect(err).to.be(null);
+        mergedFs.readFile(filePath, (err) => {
+          expect(err).to.be.a(Error);
+          expect(err.code).to.be('ENOENT');
+          done();
+        });
+      });
+    });
+
+    xit('Should return ENOENT error for non-existing file', (done) => {
+      const filePath = join(testFsPath, 'file-not-exist.txt');
+      mergedFs.unlink(filePath, (err) => {
+        expect(err).to.be.a(Error);
         expect(err.code).to.be('ENOENT');
         done();
       });

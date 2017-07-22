@@ -124,11 +124,16 @@ class MergedFs {
     );
   }
 
-  //unlink(relativePath, callback) {
-  //  console.log('-- unlink', arguments);
-  //  callback(null);
-  //}
-  //
+  unlink(path, callback) {
+    const relativePath = this._getRelativePath(path);
+
+    async.each(
+      this.devicesManager.getDevices().map(dev => join(dev, relativePath)),
+      (item, done) => fs.unlink(item, (err) => done(err && err.code === 'ENOENT' ? null : err)),
+      callback
+    );
+  }
+
   //writeFile(relativePath, data, ...callbacks) {
   //  console.log('-- writeFile', arguments);
   //  callbacks.slice(-1)[0](new Error('Unimplemented'));
