@@ -119,9 +119,10 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should not return error for non-existing directory', (done) => {
+    it('Should return error for non-existing directory', (done) => {
       mergedFs.rmdir(join(testFsPath, 'dir-not-exist'), (err) => {
-        expect(err).to.be(null);
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('ENOENT');
         done();
       });
     });

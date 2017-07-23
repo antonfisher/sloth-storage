@@ -122,11 +122,26 @@ class MergedFs {
 
   rmdir(path, callback) {
     const relativePath = this._getRelativePath(path);
+    let isExist = false;
 
     async.each(
       this.devicesManager.getDevices().map(d => join(d, relativePath)),
-      (item, done) => fs.rmdir(item, (err) => done(err && err.code === 'ENOENT' ? null : err)),
-      callback
+      (item, done) => fs.rmdir(
+        item,
+        (err) => {
+          if (err && err.code === 'ENOENT') {
+            return done(null);
+          }
+          isExist = true;
+          return done(err);
+        }
+      ),
+      (err) => {
+        if (!isExist) {
+          return callback(this._createNotExistError(`Cannot read directory: "${relativePath}"`));
+        }
+        return callback(err);
+      }
     );
   }
 
