@@ -2,6 +2,9 @@ const fs = require('fs');
 const {join, dirname} = require('path');
 const async = require('async');
 
+const EEXIST = 'EEXIST';
+const ENOENT = 'ENOENT';
+
 class MergedFs {
   constructor(devicesManager) {
     if (!devicesManager) {
@@ -13,7 +16,7 @@ class MergedFs {
 
   _createNotExistError(message) {
     const err = new Error(`${message}: file/directory not exist`);
-    err.code = 'ENOENT';
+    err.code = ENOENT;
     return err;
   }
 
@@ -76,7 +79,7 @@ class MergedFs {
     const mkdirRecursive = (p, done, initialP) => {
       initialP = (initialP || p);
       fs.mkdir(p, (err) => {
-        if (err && err.code === 'ENOENT') {
+        if (err && err.code === ENOENT) {
           mkdirRecursive(dirname(p), done, initialP);
         } else {
           if (p !== initialP) {
@@ -104,7 +107,7 @@ class MergedFs {
       (item, done) => fs.readdir(
         item,
         (err, res) => {
-          if (err && err.code === 'ENOENT') {
+          if (err && err.code === ENOENT) {
             return done(null, []);
           }
           isExist = true;
@@ -129,7 +132,7 @@ class MergedFs {
       (item, done) => fs.rmdir(
         item,
         (err) => {
-          if (err && err.code === 'ENOENT') {
+          if (err && err.code === ENOENT) {
             return done(null);
           }
           isExist = true;
@@ -145,16 +148,16 @@ class MergedFs {
     );
   }
 
-  readFile(path, config, callback) {
+  readFile(path, options, callback) {
     if (!callback) {
-      callback = config;
-      config = {};
+      callback = options;
+      options = {};
     }
 
     const relativePath = this._getRelativePath(path);
 
     async.tryEach(
-      this.devicesManager.getDevices().map(dev => (done) => fs.readFile(join(dev, relativePath), config, done)),
+      this.devicesManager.getDevices().map(dev => (done) => fs.readFile(join(dev, relativePath), options, done)),
       callback
     );
   }
@@ -168,7 +171,7 @@ class MergedFs {
       (item, done) => fs.unlink(
         item,
         (err) => {
-          if (err && err.code === 'ENOENT') {
+          if (err && err.code === ENOENT) {
             return done(null);
           }
           isExist = true;
@@ -184,10 +187,34 @@ class MergedFs {
     );
   }
 
-  //writeFile(relativePath, data, ...callbacks) {
-  //  console.log('-- writeFile', arguments);
-  //  callbacks.slice(-1)[0](new Error('Unimplemented'));
-  //}
+  writeFile(path, data, options, callback) {
+    if (!callback) {
+      callback = options;
+      options = {};
+    }
+
+    const relativePath = this._getRelativePath(path);
+    const relativeDirPath = dirname(relativePath);
+
+    this.stat(relativeDirPath, (err) => {
+      if (err) { // if not exist on any device
+        return callback(err);
+      }
+
+      this.devicesManager.getDeviceForWrite((err, device) => { // select device to write
+        if (err) {
+          return process.nextTick(() => callback(err));
+        }
+
+        this.mkdir(relativeDirPath, (err) => { // make dir if it isn't exist on the selected device
+          if (err && err.code !== EEXIST) {
+            return callback(err);
+          }
+          fs.writeFile(join(device, relativePath), data, options, callback);
+        });
+      });
+    });
+  }
 }
 
 module.exports = MergedFs;

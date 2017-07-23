@@ -12,22 +12,28 @@ const testFsPath = join(process.cwd(), testFsDir);
 let devicesManager;
 let mergedFs;
 
+function createTestFs() {
+  exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
+  exec(`mkdir -p ./${testFsDir}/dev1/dir{1,2}`);
+  exec(`mkdir -p ./${testFsDir}/dev2/dir{2,3}`);
+  exec(`touch ./${testFsDir}/dev1/file1.txt`);
+  exec(`touch ./${testFsDir}/dev1/dir1/file1-1.txt`);
+  exec(`echo 'content' > ./${testFsDir}/dev2/file2.txt`);
+}
+
+function removeTestFs() {
+  exec(`rm -rf ./${testFsDir}`);
+}
+
 describe('mergedFs', () => {
   beforeEach(() => {
-    exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
-    exec(`mkdir -p ./${testFsDir}/dev1/dir{1,2}`);
-    exec(`mkdir -p ./${testFsDir}/dev2/dir{2,3}`);
-    exec(`touch ./${testFsDir}/dev1/file1.txt`);
-    exec(`touch ./${testFsDir}/dev1/dir1/file1-1.txt`);
-    exec(`echo 'content' > ./${testFsDir}/dev2/file2.txt`);
-
+    createTestFs();
     devicesManager = new DevicesManager(testFsPath);
     mergedFs = new MergedFs(devicesManager);
   });
 
   afterEach(() => {
-    exec(`rm -rf ./${testFsDir}`);
-
+    removeTestFs();
     devicesManager = null;
     mergedFs = null;
   });
@@ -213,6 +219,64 @@ describe('mergedFs', () => {
         expect(err).to.be.a(Error);
         expect(err.code).to.be('ENOENT');
         expect(res).to.be(undefined);
+        done();
+      });
+    });
+  });
+
+  describe('#writeFile()', () => {
+    it('Should write file to the root', (done) => {
+      const content = 'content';
+      const newFilePath = join(testFsPath, 'new-file.txt');
+
+      mergedFs.writeFile(newFilePath, content, 'utf8', (err) => {
+        expect(err).to.not.be.ok();
+        if (err) {
+          return done(err);
+        }
+        mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
+          expect(err).to.not.be.ok();
+          expect(data).to.be.a('string');
+          expect(data).to.be(content);
+          done(err);
+        });
+      });
+    });
+
+    it('Should work w/o encoding parameter', (done) => {
+      const content = 'content';
+      const newFilePath = join(testFsPath, 'new-file.txt');
+
+      mergedFs.writeFile(newFilePath, content, (err) => {
+        expect(err).to.not.be.ok();
+        done(err);
+      });
+    });
+
+    it('Should write file to the directory', (done) => {
+      const content = 'content';
+      const newFilePath = join(testFsPath, 'dir1', 'new-file.txt');
+
+      mergedFs.writeFile(newFilePath, content, 'utf8', (err) => {
+        expect(err).to.not.be.ok();
+        if (err) {
+          return done(err);
+        }
+        mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
+          expect(err).to.not.be.ok();
+          expect(data).to.be.a('string');
+          expect(data).to.be(content);
+          done(err);
+        });
+      });
+    });
+
+    it('Should return ENOENT error for non-existing directory', (done) => {
+      const newFilePath = join(testFsPath, 'dir-non-existing', 'new-file.txt');
+
+      mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('ENOENT');
         done();
       });
     });
