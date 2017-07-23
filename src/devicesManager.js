@@ -18,7 +18,6 @@ class DevicesManager {
 
   _findDevices() {
     this.devices = fs.readdirSync(this.devicesPath).map(devPath => join(this.devicesPath, devPath));
-    //console.log(`MergedFs devices found: ${this.devices}`);
   }
 
   getDevicesPath() {

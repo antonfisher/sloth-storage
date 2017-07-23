@@ -1,15 +1,13 @@
 const fs = require('fs');
 const {join} = require('path');
-const {execSync} = require('child_process');
 const async = require('async');
 const expect = require('expect.js');
+const {exec} = require('./utils');
 const MergedFs = require('../src/mergedFs');
 const DevicesManager = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
-
-const exec = (command) => execSync(command, {shell: '/bin/bash'});
 
 let devicesManager;
 let mergedFs;
@@ -29,6 +27,7 @@ describe('mergedFs', () => {
 
   afterEach(() => {
     exec(`rm -rf ./${testFsDir}`);
+
     devicesManager = null;
     mergedFs = null;
   });
