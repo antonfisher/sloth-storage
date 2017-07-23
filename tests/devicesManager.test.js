@@ -39,4 +39,13 @@ describe('devicesManager', () => {
     });
   });
 
+  describe('#getDeviceForWrite()', () => {
+    it('Should return device from list', () => {
+      const devices = devicesManager.getDevices();
+      const device = devicesManager.getDeviceForWrite();
+      expect(devices).to.be.an('array');
+      expect(devices).to.contain(device);
+    });
+  });
+
 });
