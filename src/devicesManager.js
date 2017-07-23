@@ -35,9 +35,9 @@ class DevicesManager {
     return this.devices;
   }
 
-  getDeviceForWrite() {
+  getDeviceForWrite(callback) {
     // use capacity analisys
-    return this.devices[this._getRandomIntInclusive(0, this.devices.length - 1)];
+    process.nextTick(() => callback(null, this.devices[this._getRandomIntInclusive(0, this.devices.length - 1)]));
   }
 }
 

@@ -40,11 +40,14 @@ describe('devicesManager', () => {
   });
 
   describe('#getDeviceForWrite()', () => {
-    it('Should return device from list', () => {
+    it('Should return device from list', (done) => {
       const devices = devicesManager.getDevices();
-      const device = devicesManager.getDeviceForWrite();
-      expect(devices).to.be.an('array');
-      expect(devices).to.contain(device);
+
+      devicesManager.getDeviceForWrite((err, device) => {
+        expect(devices).to.be.an('array');
+        expect(devices).to.contain(device);
+        done(err);
+      });
     });
   });
 
