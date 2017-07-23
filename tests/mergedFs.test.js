@@ -271,6 +271,16 @@ describe('mergedFs', () => {
       });
     });
 
+    it('Should return ENOENT if destination is a file, not a directory', (done) => {
+      const newFilePath = join(testFsPath, 'file1.txt', 'new-file.txt');
+
+      mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('EISFILE');
+        done();
+      });
+    });
+
     it('Should return ENOENT error for non-existing directory', (done) => {
       const newFilePath = join(testFsPath, 'dir-non-existing', 'new-file.txt');
 

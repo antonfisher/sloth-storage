@@ -4,6 +4,7 @@ const async = require('async');
 
 const EEXIST = 'EEXIST';
 const ENOENT = 'ENOENT';
+const EISFILE = 'EISFILE';
 
 class MergedFs {
   constructor(devicesManager) {
@@ -14,10 +15,14 @@ class MergedFs {
     this.devicesManager = devicesManager;
   }
 
-  _createNotExistError(message) {
-    const err = new Error(`${message}: file/directory not exist`);
-    err.code = ENOENT;
+  _createError(message, code = ENOENT) {
+    const err = new Error(message);
+    err.code = code;
     return err;
+  }
+
+  _createNotExistError(message) {
+    return this._createError(`${message}: file/directory not exist`);
   }
 
   _getRelativePath(ftpPath) {
@@ -35,11 +40,13 @@ class MergedFs {
     async.detect(
       this.devicesManager.getDevices(),
       (dev, done) => fs.access(join(dev, relativePath), (err) => done(null, !err)),
-      (err, resolvedPath) => {
-        if (!err && typeof resolvedPath === 'undefined') {
-          err = this._createNotExistError(`Failed to resolve path "${relativePath}"`);
+      (err, dev) => {
+        if (!err && typeof dev === 'undefined') {
+          return callback(this._createNotExistError(`Failed to resolve path "${relativePath}"`));
+        } else if (err) {
+          return callback(err);
         }
-        callback(err, resolvedPath);
+        callback(err, join(dev, relativePath));
       }
     );
   }
@@ -196,9 +203,13 @@ class MergedFs {
     const relativePath = this._getRelativePath(path);
     const relativeDirPath = dirname(relativePath);
 
-    this.stat(relativeDirPath, (err) => {
+    this.stat(relativeDirPath, (err, stat) => {
       if (err) { // if not exist on any device
         return callback(err);
+      } else if (!stat.isDirectory()) {
+        return callback(
+          this._createError(`Failed to resolve path "${relativePath}": path contains a file in the middle`, EISFILE)
+        );
       }
 
       this.devicesManager.getDeviceForWrite((err, device) => { // select device to write
