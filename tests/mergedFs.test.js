@@ -20,6 +20,7 @@ describe('mergedFs', () => {
     exec(`mkdir -p ./${testFsDir}/dev1/dir{1,2}`);
     exec(`mkdir -p ./${testFsDir}/dev2/dir{2,3}`);
     exec(`touch ./${testFsDir}/dev1/file1.txt`);
+    exec(`touch ./${testFsDir}/dev1/dir1/file1-1.txt`);
     exec(`echo 'content' > ./${testFsDir}/dev2/file2.txt`);
 
     devicesManager = new DevicesManager(testFsPath);
@@ -92,7 +93,23 @@ describe('mergedFs', () => {
       });
     });
 
-    xit('Should return ENOENT error for non-existing directory');
+    it('Should return list of files in sub-directory', (done) => {
+      mergedFs.readdir(join(testFsPath, 'dir1'), (err, res) => {
+        expect(res).to.be.an('array');
+        expect(res).to.have.length(1);
+        expect(res).to.contain('file1-1.txt');
+        done(err);
+      });
+    });
+
+    it('Should return ENOENT error for non-existing directory', (done) => {
+      mergedFs.readdir(join(testFsPath, 'dir-not-exist'), (err, res) => {
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('ENOENT');
+        expect(res).to.be(undefined);
+        done();
+      });
+    });
   });
 
   describe('#rmdir()', () => {
@@ -190,11 +207,12 @@ describe('mergedFs', () => {
       });
     });
 
-    xit('Should return ENOENT error for non-existing file', (done) => {
+    it('Should return ENOENT error for non-existing file', (done) => {
       const filePath = join(testFsPath, 'file-not-exist.txt');
-      mergedFs.unlink(filePath, (err) => {
+      mergedFs.unlink(filePath, (err, res) => {
         expect(err).to.be.a(Error);
         expect(err.code).to.be('ENOENT');
+        expect(res).to.be(undefined);
         done();
       });
     });

@@ -11,6 +11,12 @@ class MergedFs {
     this.devicesManager = devicesManager;
   }
 
+  _createNotExistError(message) {
+    const err = new Error(`${message}: file/directory not exist`);
+    err.code = 'ENOENT';
+    return err;
+  }
+
   _getRelativePath(ftpPath) {
     return ftpPath.replace(this.devicesManager.getDevicesPath(), '');
   }
@@ -28,8 +34,7 @@ class MergedFs {
       (dev, done) => fs.access(join(dev, relativePath), (err) => done(null, !err)),
       (err, resolvedPath) => {
         if (!err && typeof resolvedPath === 'undefined') {
-          err = new Error(`Failed to resolve path "${relativePath}", file not exist`);
-          err.code = 'ENOENT';
+          err = this._createNotExistError(`Failed to resolve path "${relativePath}"`);
         }
         callback(err, resolvedPath);
       }
@@ -92,11 +97,26 @@ class MergedFs {
 
   readdir(path, callback) {
     const relativePath = this._getRelativePath(path);
+    let isExist = false;
 
     async.concat(
       this.devicesManager.getDevices().map(d => join(d, relativePath)),
-      fs.readdir,
-      (err, contents) => callback(err, [...new Set(contents)])
+      (item, done) => fs.readdir(
+        item,
+        (err, res) => {
+          if (err && err.code === 'ENOENT') {
+            return done(null, []);
+          }
+          isExist = true;
+          return done(err, res);
+        }
+      ),
+      (err, contents) => {
+        if (!isExist) {
+          return callback(this._createNotExistError(`Cannot read directory: "${relativePath}"`));
+        }
+        return callback(err, [...new Set(contents)]);
+      }
     );
   }
 
@@ -126,11 +146,26 @@ class MergedFs {
 
   unlink(path, callback) {
     const relativePath = this._getRelativePath(path);
+    let isExist = false;
 
     async.each(
       this.devicesManager.getDevices().map(dev => join(dev, relativePath)),
-      (item, done) => fs.unlink(item, (err) => done(err && err.code === 'ENOENT' ? null : err)),
-      callback
+      (item, done) => fs.unlink(
+        item,
+        (err) => {
+          if (err && err.code === 'ENOENT') {
+            return done(null);
+          }
+          isExist = true;
+          return done(err);
+        }
+      ),
+      (err) => {
+        if (!isExist) {
+          return callback(this._createNotExistError(`Cannot remove file: "${relativePath}"`));
+        }
+        return callback(err);
+      }
     );
   }
 
