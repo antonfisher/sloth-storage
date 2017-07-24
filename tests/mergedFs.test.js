@@ -19,6 +19,7 @@ function createTestFs() {
   exec(`touch ./${testFsDir}/dev1/file1.txt`);
   exec(`touch ./${testFsDir}/dev1/dir1/file1-1.txt`);
   exec(`echo 'content' > ./${testFsDir}/dev2/file2.txt`);
+  exec(`ln -s ../file2.txt ./${testFsDir}/dev2/dir3/link-file2.txt`);
 }
 
 function removeTestFs() {
@@ -163,6 +164,34 @@ describe('mergedFs', () => {
 
     it('Should return error for non-existion file', (done) => {
       mergedFs.stat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
+        expect(res).to.be(undefined);
+        expect(err).to.be.an(Error);
+        expect(err).to.have.key('code');
+        expect(err.code).to.be('ENOENT');
+        done();
+      });
+    });
+  });
+
+  describe('#lstat()', () => {
+    it('Should return lstat for file', (done) => {
+      mergedFs.lstat(join(testFsPath, 'file2.txt'), (err, res) => {
+        expect(res).to.be.an('object');
+        expect(res).to.have.key('atime');
+        done(err);
+      });
+    });
+
+    it('Should return lstat for link', (done) => {
+      mergedFs.lstat(join(testFsPath, 'dir3', 'link-file2.txt'), (err, res) => {
+        expect(res).to.be.an('object');
+        expect(res).to.have.key('atime');
+        done(err);
+      });
+    });
+
+    it('Should return error for non-existion file', (done) => {
+      mergedFs.lstat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
         expect(err).to.have.key('code');

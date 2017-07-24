@@ -74,10 +74,14 @@ class MergedFs {
     });
   }
 
-  //lstat(relativePath, callback) {
-  //  console.log('-- lstat', arguments);
-  //  this.stat(relativePath, callback);
-  //}
+  lstat(path, callback) {
+    this._resolvePath(path, (err, resolvedPath) => {
+      if (err) {
+        return process.nextTick(() => callback(err));
+      }
+      fs.lstat(resolvedPath, callback);
+    });
+  }
 
   mkdir(path, ...callbacks) {
     const callback = callbacks.slice(-1)[0];
