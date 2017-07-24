@@ -221,6 +221,7 @@ describe('mergedFs', () => {
 
     it('Should return ENOENT error for non-existing file', (done) => {
       mergedFs.readFile(join(testFsPath, 'file-not-exist.txt'), (err, data) => {
+        expect(data).to.be(undefined);
         expect(err).to.be.a(Error);
         expect(err).to.have.key('code');
         expect(err.code).to.be('ENOENT');
