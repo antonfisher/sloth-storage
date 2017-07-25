@@ -29,14 +29,15 @@ class MergedFs {
     return ftpPath.replace(this.devicesManager.getDevicesPath(), '');
   }
 
-  _resolvePath(ftpPath, callback) {
-    const relativePath = this._getRelativePath(ftpPath);
+  _resolvePath(path, callback) {
+    const relativePath = this._getRelativePath(path);
     //console.log(`-- resolvePath: "${ftpPath}", relative: "${relativePath}"`);
 
     if (!relativePath) {
       return process.nextTick(() => callback(new Error(`Empty relative path parsed from: ${relativePath}`)));
     }
 
+    // TODO implement random access to devices
     async.detect(
       this.devicesManager.getDevices(),
       (dev, done) => fs.access(join(dev, relativePath), (err) => done(null, !err)),
@@ -51,9 +52,13 @@ class MergedFs {
     );
   }
 
-  createReadStream(path, options) {
-    const relativePath = this._getRelativePath(path);
-    const resolvedPath = this.devicesManager.getDevices().reduce((acc, dev) => {
+  _resolvePathSync(relativePath) {
+    if (!relativePath) {
+      return process.nextTick(() => callback(new Error(`Empty relative path parsed from: ${relativePath}`)));
+    }
+
+    // TODO implement random access to devices
+    return this.devicesManager.getDevices().reduce((acc, dev) => {
       if (acc) {
         return acc;
       }
@@ -65,6 +70,11 @@ class MergedFs {
         // ignore
       }
     }, null);
+  }
+
+  createReadStream(path, options) {
+    const relativePath = this._getRelativePath(path);
+    const resolvedPath = this._resolvePathSync(relativePath);
 
     if (resolvedPath) {
       return fs.createReadStream(resolvedPath, options);
@@ -73,31 +83,45 @@ class MergedFs {
     throw this._createNotExistError(`createReadStream() "${relativePath}"`);
   }
 
-  //createWriteStream(filename) {
-  //  console.log('-- createWriteStream', arguments);
-  //  throw new Error('Unimplemented');
-  //}
+  createWriteStream(path) {
+    throw 'lol';
+  }
 
   exists(path, callback) {
-    this._resolvePath(path, (err, resolvedPath) => process.nextTick(() => callback(Boolean(resolvedPath))));
+    const relativePath = this._getRelativePath(path);
+
+    return this._resolvePath(
+      relativePath,
+      (err, resolvedPath) => process.nextTick(() => callback(Boolean(resolvedPath)))
+    );
   }
 
   stat(path, callback) {
-    this._resolvePath(path, (err, resolvedPath) => {
-      if (err) {
-        return process.nextTick(() => callback(err));
+    const relativePath = this._getRelativePath(path);
+
+    return this._resolvePath(
+      relativePath,
+      (err, resolvedPath) => {
+        if (err) {
+          return process.nextTick(() => callback(err));
+        }
+        fs.stat(resolvedPath, callback);
       }
-      fs.stat(resolvedPath, callback);
-    });
+    );
   }
 
   lstat(path, callback) {
-    this._resolvePath(path, (err, resolvedPath) => {
-      if (err) {
-        return process.nextTick(() => callback(err));
+    const relativePath = this._getRelativePath(path);
+
+    return this._resolvePath(
+      relativePath,
+      (err, resolvedPath) => {
+        if (err) {
+          return process.nextTick(() => callback(err));
+        }
+        fs.lstat(resolvedPath, callback);
       }
-      fs.lstat(resolvedPath, callback);
-    });
+    );
   }
 
   mkdir(path, ...callbacks) {
