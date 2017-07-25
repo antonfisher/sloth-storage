@@ -321,4 +321,50 @@ describe('mergedFs', () => {
       });
     });
   });
+
+  describe('#createReadStream()', () => {
+    it('Should read existing file', (done) => {
+      let stream;
+
+      try {
+        stream = mergedFs.createReadStream(join(testFsPath, 'file2.txt'));
+      } catch (e) {
+        return done(`createReadStream() should not throw an exception: ${e}`);
+      }
+
+      stream.on('data', (data) => {
+        expect(data).to.be.a(Buffer);
+        expect(data.toString()).to.be('content\n');
+        done();
+      });
+    });
+
+    it('Should support enconding parameter', (done) => {
+      let stream;
+
+      try {
+        stream = mergedFs.createReadStream(join(testFsPath, 'file2.txt'), {encoding: 'utf8'});
+      } catch (e) {
+        return done(`createReadStream() should not throw an exception: ${e}`);
+      }
+
+      stream.on('data', (data) => {
+        expect(data).to.be.a('string');
+        expect(data).to.be('content\n');
+        done();
+      });
+    });
+
+    it('Should return ENOENT error for non-existing file', (done) => {
+      expect(mergedFs.createReadStream.bind(mergedFs))
+        .withArgs(join(testFsPath, 'file-not-exist.txt'))
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err).to.have.key('code');
+          expect(err.code).to.be('ENOENT');
+          done();
+        });
+    });
+  });
 });

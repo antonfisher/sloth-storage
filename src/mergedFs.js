@@ -51,11 +51,28 @@ class MergedFs {
     );
   }
 
-  //createReadStream() {
-  //  console.log('-- createReadStream', arguments);
-  //  throw new Error('Unimplemented');
-  //}
-  //
+  createReadStream(path, options) {
+    const relativePath = this._getRelativePath(path);
+    const resolvedPath = this.devicesManager.getDevices().reduce((acc, dev) => {
+      if (acc) {
+        return acc;
+      }
+      const devPath = join(dev, relativePath);
+      try {
+        fs.accessSync(devPath);
+        return devPath;
+      } catch (e) {
+        // ignore
+      }
+    }, null);
+
+    if (resolvedPath) {
+      return fs.createReadStream(resolvedPath, options);
+    }
+
+    throw this._createNotExistError(`createReadStream() "${relativePath}"`);
+  }
+
   //createWriteStream(filename) {
   //  console.log('-- createWriteStream', arguments);
   //  throw new Error('Unimplemented');

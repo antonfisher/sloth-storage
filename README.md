@@ -5,7 +5,7 @@ Stages:
 - [ ] proof-of-concept building
 - [ ] hardware assembling
 
-## Idea
+## Idea:
 
 The idea is to build drive distributed storage system with FTP interface on Node.js.
 
