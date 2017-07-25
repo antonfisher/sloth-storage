@@ -1,5 +1,5 @@
 const fs = require('fs');
-const {join, dirname} = require('path');
+const {join, dirname, basename} = require('path');
 const async = require('async');
 
 const EEXIST = 'EEXIST';
@@ -80,11 +80,19 @@ class MergedFs {
       return fs.createReadStream(resolvedPath, options);
     }
 
-    throw this._createNotExistError(`createReadStream() "${relativePath}"`);
+    throw this._createNotExistError(`Cannot create read stream for "${relativePath}"`);
   }
 
-  createWriteStream(path) {
-    throw 'lol';
+  createWriteStream(path, options) {
+    const relativePath = this._getRelativePath(path);
+    const fileName = basename(relativePath);
+    const resolvedDir = this._resolvePathSync(dirname(relativePath));
+
+    if (resolvedDir) {
+      return fs.createWriteStream(join(resolvedDir, fileName), options);
+    }
+
+    throw this._createNotExistError(`Cannot create write stream for "${relativePath}"`);
   }
 
   exists(path, callback) {

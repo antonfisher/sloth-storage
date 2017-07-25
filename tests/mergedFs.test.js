@@ -340,24 +340,59 @@ describe('mergedFs', () => {
     });
 
     it('Should support enconding parameter', (done) => {
-      let stream;
-
       try {
-        stream = mergedFs.createReadStream(join(testFsPath, 'file2.txt'), {encoding: 'utf8'});
+        const stream = mergedFs.createReadStream(join(testFsPath, 'file2.txt'), {encoding: 'utf8'});
+        stream.on('data', (data) => {
+          expect(data).to.be.a('string');
+          expect(data).to.be('content\n');
+          done();
+        });
       } catch (e) {
-        return done(`createReadStream() should not throw an exception: ${e}`);
+        done(`createReadStream() should not throw an exception: ${e}`);
       }
-
-      stream.on('data', (data) => {
-        expect(data).to.be.a('string');
-        expect(data).to.be('content\n');
-        done();
-      });
     });
 
     it('Should return ENOENT error for non-existing file', (done) => {
       expect(mergedFs.createReadStream.bind(mergedFs))
         .withArgs(join(testFsPath, 'file-not-exist.txt'))
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err).to.have.key('code');
+          expect(err.code).to.be('ENOENT');
+          done();
+        });
+    });
+  });
+
+  describe('#createWriteStream()', () => {
+    it('Should create write stream to the root', (done) => {
+      const content = 'content';
+      const newFilePath = join(testFsPath, 'new-file.txt');
+
+      try {
+        const stream = mergedFs.createWriteStream(newFilePath, {encoding: 'utf8'});
+        stream.end(content);
+        stream.on('finish', () => {
+          mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
+            expect(err).to.not.be.ok();
+            expect(data).to.be.a('string');
+            expect(data).to.be(content);
+            done(err);
+          });
+        });
+      } catch (e) {
+        return done(`createWriteStream() should not throw an exception: ${e}`);
+      }
+    });
+
+    xit('Should work w/o encoding parameter');
+    xit('Should create write stream to the directory');
+    xit('Should return ENOENT if destination is a file, not a directory');
+
+    it('Should return ENOENT error for non-existing directory', (done) => {
+      expect(mergedFs.createWriteStream.bind(mergedFs))
+        .withArgs(join(testFsPath, 'dir-not-exist', 'file-not-exist.txt'))
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
