@@ -89,6 +89,13 @@ class MergedFs {
     const resolvedDir = this._resolvePathSync(dirname(relativePath));
 
     if (resolvedDir) {
+      const stat = fs.statSync(resolvedDir);
+      if (!stat.isDirectory()) {
+        throw this._createError(
+          `Failed to resolve path "${relativePath}": path contains a file in the middle`,
+          EISFILE
+        );
+      }
       return fs.createWriteStream(join(resolvedDir, fileName), options);
     }
 

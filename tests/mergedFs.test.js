@@ -301,7 +301,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT if destination is a file, not a directory', (done) => {
+    it('Should return EISFILE if destination is a file, not a directory', (done) => {
       const newFilePath = join(testFsPath, 'file1.txt', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
@@ -371,7 +371,7 @@ describe('mergedFs', () => {
       const newFilePath = join(testFsPath, 'new-file.txt');
 
       try {
-        const stream = mergedFs.createWriteStream(newFilePath, {encoding: 'utf8'});
+        const stream = mergedFs.createWriteStream(newFilePath, {defaultEncoding: 'utf8'});
         stream.end(content);
         stream.on('finish', () => {
           mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
@@ -386,9 +386,57 @@ describe('mergedFs', () => {
       }
     });
 
-    xit('Should work w/o encoding parameter');
-    xit('Should create write stream to the directory');
-    xit('Should return ENOENT if destination is a file, not a directory');
+    it('Should work w/o encoding parameter', (done) => {
+      const content = 'content';
+      const newFilePath = join(testFsPath, 'new-file-1.txt');
+
+      try {
+        const stream = mergedFs.createWriteStream(newFilePath);
+        stream.end(Buffer(content));
+        stream.on('finish', () => {
+          mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
+            expect(err).to.not.be.ok();
+            expect(data).to.be.a('string');
+            expect(data).to.be(content);
+            done(err);
+          });
+        });
+      } catch (e) {
+        return done(`createWriteStream() should not throw an exception: ${e}`);
+      }
+    });
+
+    it('Should create write stream to the directory', (done) => {
+      const content = 'content';
+      const newFilePath = join(testFsPath, 'dir3', 'new-file-in-directory.txt');
+
+      try {
+        const stream = mergedFs.createWriteStream(newFilePath, {defaultEncoding: 'utf8'});
+        stream.end(content);
+        stream.on('finish', () => {
+          mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
+            expect(err).to.not.be.ok();
+            expect(data).to.be.a('string');
+            expect(data).to.be(content);
+            done(err);
+          });
+        });
+      } catch (e) {
+        return done(`createWriteStream() should not throw an exception: ${e}`);
+      }
+    });
+
+    it('Should return EISFILE if destination is a file, not a directory', (done) => {
+      expect(mergedFs.createWriteStream.bind(mergedFs))
+        .withArgs(join(testFsPath, 'file2.txt', 'file-not-exist.txt'))
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err).to.have.key('code');
+          expect(err.code).to.be('EISFILE');
+          done();
+        });
+    });
 
     it('Should return ENOENT error for non-existing directory', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
