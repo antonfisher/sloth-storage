@@ -1,8 +1,10 @@
 const fs = require('fs');
 const {join} = require('path');
 
+const DEFAULT_FIND_INTERVAL = 5 * 1000;
+
 class DevicesManager {
-  constructor(devicesPath) {
+  constructor(devicesPath, lookupUnterval = DEFAULT_FIND_INTERVAL) {
     if (!devicesPath) {
       throw new Error('No "devicesPath" parameter specified');
     }
@@ -13,10 +15,13 @@ class DevicesManager {
     this.devicesPath = devicesPath;
     this.devices = [];
 
-    this._findDevices();
+    this._lookupDevices();
+    this._lookupDevicesInterval = setInterval(() => this._lookupDevices(), lookupUnterval);
   }
 
-  _findDevices() {
+  _lookupDevices() {
+    // TODO logger
+    //console.log('lookup new devices... ', this.devices.length);
     this.devices = fs.readdirSync(this.devicesPath).map(devPath => join(this.devicesPath, devPath));
   }
 
@@ -38,6 +43,10 @@ class DevicesManager {
   getDeviceForWrite(callback) {
     // use capacity analisys
     process.nextTick(() => callback(null, this.devices[this._getRandomIntInclusive(0, this.devices.length - 1)]));
+  }
+
+  destroy() {
+    clearInterval(this._lookupDevicesInterval);
   }
 }
 

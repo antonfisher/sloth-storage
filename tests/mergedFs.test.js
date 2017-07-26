@@ -35,6 +35,7 @@ describe('mergedFs', () => {
 
   afterEach(() => {
     removeTestFs();
+    devicesManager.destroy();
     devicesManager = null;
     mergedFs = null;
   });

@@ -18,7 +18,22 @@ describe('devicesManager', () => {
 
   afterEach(() => {
     exec(`rm -rf ./${testFsDir}`);
+    devicesManager.destroy();
     devicesManager = null;
+  });
+
+  it('Should find new device', (done) => {
+    const timeout = 10;
+    devicesManager = new DevicesManager(testFsPath, timeout);
+    expect(devicesManager.getDevices()).to.be.an('array');
+    expect(devicesManager.getDevices()).to.have.length(2);
+    exec(`mkdir -p ./${testFsDir}/dev3`);
+    setTimeout(() => {
+    expect(devicesManager.getDevices()).to.be.an('array');
+    expect(devicesManager.getDevices()).to.have.length(3);
+      expect(devicesManager.getDevices()).to.contain(join(testFsPath, 'dev3'));
+      done();
+    }, timeout * 1.1);
   });
 
   describe('#getDevicesPath()', () => {
