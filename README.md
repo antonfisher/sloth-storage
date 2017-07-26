@@ -1,6 +1,9 @@
 # slug-storage
 
 [![Build Status](https://travis-ci.org/antonfisher/slug-storage.svg?branch=master)](https://travis-ci.org/antonfisher/slug-storage)
+[![Dependency Status](https://dependencyci.com/github/antonfisher/slug-storage/badge)](https://dependencyci.com/github/antonfisher/slug-storage)
+[![bitHound Overall Score](https://www.bithound.io/github/antonfisher/slug-storage/badges/score.svg)](https://www.bithound.io/github/antonfisher/slug-storage)
+[![Coverage Status](https://coveralls.io/repos/github/antonfisher/slug-storage/badge.svg?branch=master)](https://coveralls.io/github/antonfisher/slug-storage?branch=master)
 
 Stages:
 - [x] research
