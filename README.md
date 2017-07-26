@@ -1,5 +1,7 @@
 # slug-storage
 
+[![Build Status](https://travis-ci.org/antonfisher/slug-storage.svg?branch=master)](https://travis-ci.org/antonfisher/slug-storage)
+
 Stages:
 - [x] research
 - [ ] proof-of-concept building
