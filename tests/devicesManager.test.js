@@ -22,18 +22,23 @@ describe('devicesManager', () => {
     devicesManager = null;
   });
 
-  it('Should find new device', (done) => {
-    const timeout = 10;
-    devicesManager = new DevicesManager(testFsPath, timeout);
-    expect(devicesManager.getDevices()).to.be.an('array');
-    expect(devicesManager.getDevices()).to.have.length(2);
-    exec(`mkdir -p ./${testFsDir}/dev3`);
-    setTimeout(() => {
-    expect(devicesManager.getDevices()).to.be.an('array');
-    expect(devicesManager.getDevices()).to.have.length(3);
-      expect(devicesManager.getDevices()).to.contain(join(testFsPath, 'dev3'));
-      done();
-    }, timeout * 1.1);
+  describe('Handle new devices', () => {
+    it('Should find new device', (done) => {
+      const timeout = 10;
+      devicesManager = new DevicesManager(testFsPath, timeout);
+      expect(devicesManager.getDevices()).to.be.an('array');
+      expect(devicesManager.getDevices()).to.have.length(2);
+      exec(`mkdir -p ./${testFsDir}/dev3`);
+      setTimeout(() => {
+      expect(devicesManager.getDevices()).to.be.an('array');
+      expect(devicesManager.getDevices()).to.have.length(3);
+        expect(devicesManager.getDevices()).to.contain(join(testFsPath, 'dev3'));
+        done();
+      }, timeout * 1.1);
+    });
+
+    xit('Should create storage directory on new divice');
+    xit('Should mark new device as "read-only" during synchronization');
   });
 
   describe('#getDevicesPath()', () => {
@@ -64,6 +69,8 @@ describe('devicesManager', () => {
         done(err);
       });
     });
+
+    xit('Should not return "read-only" devices');
   });
 
 });

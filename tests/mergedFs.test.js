@@ -40,6 +40,28 @@ describe('mergedFs', () => {
     mergedFs = null;
   });
 
+  describe('Errors', () => {
+    it ('#_createError() should return default error with code ENOENT', () => {
+      const err = mergedFs._createError('lol', 'LOLCODE');
+      expect(err).to.be.an(Error);
+      expect(err).to.have.key('code');
+      expect(err.code).to.be('LOLCODE');
+      expect(err.toString()).to.contain('lol');
+    });
+
+    it ('#_createNotExistError() should return default error with code ENOENT', () => {
+      const err = mergedFs._createNotExistError('lol');
+      expect(err).to.be.an(Error);
+      expect(err).to.have.key('code');
+      expect(err.code).to.be('ENOENT');
+      expect(err.toString()).to.contain('lol');
+    });
+  });
+
+  //xdescribe('#_getRelativePath()');
+  //xdescribe('#_resolvePath()');
+  //xdescribe('#_resolvePathSync()');
+
   describe('#mkdir()', () => {
     it('Should create directory on each device (1 level)', (done) => {
       const dir = 'dir-new-1';
@@ -84,6 +106,8 @@ describe('mergedFs', () => {
         );
       });
     });
+
+    xit('Should create new directories in the storage directory on a device');
   });
 
   describe('#readdir()', () => {
@@ -450,5 +474,7 @@ describe('mergedFs', () => {
           done();
         });
     });
+
+    xit('Should use "getDeviceForWrite"');
   });
 });
