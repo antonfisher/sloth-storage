@@ -1,10 +1,13 @@
 const fs = require('fs');
 const {join} = require('path');
+const EventEmitter = require('events');
 
 const DEFAULT_FIND_INTERVAL = 5 * 1000;
 
-class DevicesManager {
+class DevicesManager extends EventEmitter {
   constructor(devicesPath, lookupUnterval = DEFAULT_FIND_INTERVAL) {
+    super();
+
     if (!devicesPath) {
       throw new Error('No "devicesPath" parameter specified');
     }
@@ -23,6 +26,7 @@ class DevicesManager {
     // TODO logger
     //console.log('lookup new devices... ', this.devices.length);
     this.devices = fs.readdirSync(this.devicesPath).map(devPath => join(this.devicesPath, devPath));
+    this.emit('ready');
   }
 
   // the maximum is inclusive and the minimum is inclusive

@@ -1,6 +1,5 @@
 const fs = require('fs');
 const {join} = require('path');
-//const async = require('async');
 const expect = require('expect.js');
 const {exec} = require('./utils');
 const DevicesManager = require('../src/devicesManager');
