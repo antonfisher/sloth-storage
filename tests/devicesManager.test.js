@@ -17,22 +17,23 @@ describe('devicesManager', () => {
   });
 
   afterEach(() => {
-    exec(`rm -rf ./${testFsDir}`);
     devicesManager.destroy();
     devicesManager = null;
+    exec(`rm -rf ./${testFsDir}`);
   });
 
   describe('Handle new devices', () => {
     it('Should find new device', (done) => {
       const timeout = 10;
-      devicesManager = new DevicesManager(testFsPath, timeout);
-      expect(devicesManager.getDevices()).to.be.an('array');
-      expect(devicesManager.getDevices()).to.have.length(2);
+      const localDevicesManager = new DevicesManager(testFsPath, timeout);
+      expect(localDevicesManager.getDevices()).to.be.an('array');
+      expect(localDevicesManager.getDevices()).to.have.length(2);
       exec(`mkdir -p ./${testFsDir}/dev3`);
       setTimeout(() => {
-      expect(devicesManager.getDevices()).to.be.an('array');
-      expect(devicesManager.getDevices()).to.have.length(3);
-        expect(devicesManager.getDevices()).to.contain(join(testFsPath, 'dev3'));
+      expect(localDevicesManager.getDevices()).to.be.an('array');
+      expect(localDevicesManager.getDevices()).to.have.length(3);
+        expect(localDevicesManager.getDevices()).to.contain(join(testFsPath, 'dev3'));
+        localDevicesManager.destroy();
         done();
       }, timeout * 1.1);
     });
