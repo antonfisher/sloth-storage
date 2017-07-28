@@ -1,0 +1,13 @@
+{
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "ecmaVersion": 6,
+  "rules": {
+    "max-len": [
+      "error",
+      120
+    ]
+  }
+}

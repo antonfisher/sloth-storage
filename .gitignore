@@ -1,6 +1,14 @@
-.idea
+# Logs
+npm-debug.log*
 
-node_modules/
+# Dependency directories
+node_modules
+
+# Dev directory
 dev
 
-npm-debug.log
+# Tests coverage directory
+coverage
+
+# IDE
+.idea
