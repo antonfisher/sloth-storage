@@ -4,6 +4,13 @@ const EventEmitter = require('events');
 
 const DEFAULT_FIND_INTERVAL = 5 * 1000;
 
+// the maximum is inclusive and the minimum is inclusive
+function _getRandomIntInclusive(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * ((max - min) + 1)) + min;
+}
+
 class DevicesManager extends EventEmitter {
   constructor(devicesPath, lookupUnterval = DEFAULT_FIND_INTERVAL) {
     super();
@@ -29,13 +36,6 @@ class DevicesManager extends EventEmitter {
     this.emit('ready');
   }
 
-  // the maximum is inclusive and the minimum is inclusive
-  _getRandomIntInclusive(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
   getDevicesPath() {
     return this.devicesPath;
   }
@@ -46,7 +46,7 @@ class DevicesManager extends EventEmitter {
 
   getDeviceForWrite(callback) {
     // use capacity analisys
-    process.nextTick(() => callback(null, this.devices[this._getRandomIntInclusive(0, this.devices.length - 1)]));
+    process.nextTick(() => callback(null, this.devices[_getRandomIntInclusive(0, this.devices.length - 1)]));
   }
 
   destroy() {
@@ -54,4 +54,7 @@ class DevicesManager extends EventEmitter {
   }
 }
 
-module.exports = DevicesManager;
+module.exports = {
+  DevicesManager,
+  _getRandomIntInclusive
+};

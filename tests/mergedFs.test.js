@@ -3,8 +3,8 @@ const {join} = require('path');
 const async = require('async');
 const expect = require('expect.js');
 const {exec} = require('./utils');
-const MergedFs = require('../src/mergedFs');
-const DevicesManager = require('../src/devicesManager');
+const {MergedFs, _createError, _createNotExistError} = require('../src/mergedFs');
+const {DevicesManager} = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
@@ -40,24 +40,6 @@ describe('mergedFs', () => {
     removeTestFs();
   });
 
-  describe('Errors', () => {
-    it ('#_createError() should return default error with code ENOENT', () => {
-      const err = mergedFs._createError('lol', 'LOLCODE');
-      expect(err).to.be.an(Error);
-      expect(err).to.have.key('code');
-      expect(err.code).to.be('LOLCODE');
-      expect(err.toString()).to.contain('lol');
-    });
-
-    it ('#_createNotExistError() should return default error with code ENOENT', () => {
-      const err = mergedFs._createNotExistError('lol');
-      expect(err).to.be.an(Error);
-      expect(err).to.have.key('code');
-      expect(err.code).to.be('ENOENT');
-      expect(err.toString()).to.contain('lol');
-    });
-  });
-
   //xdescribe('#_getRelativePath()');
   //xdescribe('#_resolvePath()');
   //xdescribe('#_resolvePathSync()');
@@ -67,19 +49,19 @@ describe('mergedFs', () => {
       const dir = 'dir-new-1';
       const devices = devicesManager.getDevices();
 
-      mergedFs.mkdir(join(testFsPath, dir), (err) => {
-        if (err) {
-          return done(err);
+      mergedFs.mkdir(join(testFsPath, dir), (errMkdir) => {
+        if (errMkdir) {
+          return done(errMkdir);
         }
 
         async.concat(
           devices,
-          (dev, done) => fs.readdir(dev, done),
-          (err, res) => {
+          (dev, devDone) => fs.readdir(dev, devDone),
+          (errReaddir, res) => {
             expect(res).to.be.an('array');
             res = res.filter(i => (i === dir));
             expect(res).to.have.length(devices.length);
-            done(err);
+            done(errReaddir);
           }
         );
       });
@@ -89,19 +71,19 @@ describe('mergedFs', () => {
       const dir = 'dir-new-2';
       const subDir = 'dir1';
       const devices = devicesManager.getDevices();
-      mergedFs.mkdir(join(testFsPath, subDir, dir), (err) => {
-        if (err) {
-          return done(err);
+      mergedFs.mkdir(join(testFsPath, subDir, dir), (errMkdir) => {
+        if (errMkdir) {
+          return done(errMkdir);
         }
 
         async.concat(
           devices,
-          (dev, done) => fs.readdir(join(dev, subDir), done),
-          (err, res) => {
+          (dev, devDone) => fs.readdir(join(dev, subDir), devDone),
+          (errReaddir, res) => {
             expect(res).to.be.an('array');
             res = res.filter(i => (i === dir));
             expect(res).to.have.length(devices.length);
-            done(err);
+            done(errReaddir);
           }
         );
       });
@@ -258,11 +240,11 @@ describe('mergedFs', () => {
   describe('#unlink()', () => {
     it('Should remove existing file', (done) => {
       const filePath = join(testFsPath, 'file2.txt');
-      mergedFs.unlink(filePath, (err) => {
-        expect(err).to.be(null);
-        mergedFs.readFile(filePath, (err) => {
-          expect(err).to.be.a(Error);
-          expect(err.code).to.be('ENOENT');
+      mergedFs.unlink(filePath, (errUnlink) => {
+        expect(errUnlink).to.be(null);
+        mergedFs.readFile(filePath, (errRead) => {
+          expect(errRead).to.be.a(Error);
+          expect(errRead.code).to.be('ENOENT');
           done();
         });
       });
@@ -284,16 +266,16 @@ describe('mergedFs', () => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'new-file.txt');
 
-      mergedFs.writeFile(newFilePath, content, 'utf8', (err) => {
-        expect(err).to.not.be.ok();
-        if (err) {
-          return done(err);
+      mergedFs.writeFile(newFilePath, content, 'utf8', (errWrite) => {
+        expect(errWrite).to.not.be.ok();
+        if (errWrite) {
+          return done(errWrite);
         }
-        mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
-          expect(err).to.not.be.ok();
+        mergedFs.readFile(newFilePath, 'utf8', (errRead, data) => {
+          expect(errRead).to.not.be.ok();
           expect(data).to.be.a('string');
           expect(data).to.be(content);
-          done(err);
+          done(errRead);
         });
       });
     });
@@ -312,16 +294,16 @@ describe('mergedFs', () => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'dir1', 'new-file.txt');
 
-      mergedFs.writeFile(newFilePath, content, 'utf8', (err) => {
-        expect(err).to.not.be.ok();
-        if (err) {
-          return done(err);
+      mergedFs.writeFile(newFilePath, content, 'utf8', (errWrite) => {
+        expect(errWrite).to.not.be.ok();
+        if (errWrite) {
+          return done(errWrite);
         }
-        mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
-          expect(err).to.not.be.ok();
+        mergedFs.readFile(newFilePath, 'utf8', (errRead, data) => {
+          expect(errRead).to.not.be.ok();
           expect(data).to.be.a('string');
           expect(data).to.be(content);
-          done(err);
+          done(errRead);
         });
       });
     });
@@ -476,5 +458,23 @@ describe('mergedFs', () => {
     });
 
     xit('Should use "getDeviceForWrite"');
+  });
+});
+
+describe('mergeFs - Errors', () => {
+  it('#_createError() should return default error with code ENOENT', () => {
+    const err = _createError('lol', 'LOLCODE');
+    expect(err).to.be.an(Error);
+    expect(err).to.have.key('code');
+    expect(err.code).to.be('LOLCODE');
+    expect(err.toString()).to.contain('lol');
+  });
+
+  it('#_createNotExistError() should return default error with code ENOENT', () => {
+    const err = _createNotExistError('lol');
+    expect(err).to.be.an(Error);
+    expect(err).to.have.key('code');
+    expect(err.code).to.be('ENOENT');
+    expect(err.toString()).to.contain('lol');
   });
 });

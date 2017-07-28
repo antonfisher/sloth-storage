@@ -1,12 +1,12 @@
 const {join} = require('path');
 const {FtpServer} = require('ftpd');
-const DevicesManager = require('./src/devicesManager');
-const MergedFs = require('./src/mergedFs');
+const {DevicesManager} = require('./src/devicesManager');
+const {MergedFs} = require('./src/mergedFs');
 
 const options = {
   host: process.env.IP || '127.0.0.1',
   port: process.env.PORT || 7002,
-  tls: null,
+  tls: null
 };
 
 const workDir = process.argv[2];

@@ -1,8 +1,7 @@
-const fs = require('fs');
 const {join} = require('path');
 const expect = require('expect.js');
 const {exec} = require('./utils');
-const DevicesManager = require('../src/devicesManager');
+const {DevicesManager} = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
@@ -29,8 +28,8 @@ describe('devicesManager', () => {
       expect(localDevicesManager.getDevices()).to.have.length(2);
       exec(`mkdir -p ./${testFsDir}/dev3`);
       setTimeout(() => {
-      expect(localDevicesManager.getDevices()).to.be.an('array');
-      expect(localDevicesManager.getDevices()).to.have.length(3);
+        expect(localDevicesManager.getDevices()).to.be.an('array');
+        expect(localDevicesManager.getDevices()).to.have.length(3);
         expect(localDevicesManager.getDevices()).to.contain(join(testFsPath, 'dev3'));
         localDevicesManager.destroy();
         done();
@@ -72,5 +71,4 @@ describe('devicesManager', () => {
 
     xit('Should not return "read-only" devices');
   });
-
 });
