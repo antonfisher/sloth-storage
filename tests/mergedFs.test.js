@@ -72,10 +72,39 @@ describe('mergedFs', () => {
     });
   });
 
-  //xdescribe('#_resolvePath()');
+  describe('#_resolvePath()', () => {
+    it('should return path to file on device', (done) => {
+      mergedFs._resolvePath(join(testFsPath, 'file1.txt'), (err, res) => {
+        expect(err).to.not.be.ok();
+        expect(res).to.be.a('string');
+        expect(res).to.be(`${testFsPath}/dev1/file1.txt`);
+        done(err);
+      });
+    });
+
+    it('should return an ENOENT error if path is not exist', (done) => {
+      mergedFs._resolvePath(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
+        expect(err).to.be.a(Error);
+        expect(err).to.have.key('code');
+        expect(err.code).to.be('ENOENT');
+        expect(res).to.be(undefined);
+        done();
+      });
+    });
+
+    it('should throw an ENOENT error if path is undefined', (done) => {
+      mergedFs._resolvePath(null, (err, res) => {
+        expect(err).to.be.a(Error);
+        expect(err).to.have.key('code');
+        expect(err.code).to.be('ENOENT');
+        expect(res).to.be(undefined);
+        done();
+      });
+    });
+  });
 
   describe('#_resolvePathSync()', () => {
-    it('should return path to of device', () => {
+    it('should return path to file on device', () => {
       const fullPath = join(testFsPath, 'file1.txt');
       const relativePath = mergedFs._getRelativePath(fullPath);
       const resolvedPath = mergedFs._resolvePathSync(relativePath);

@@ -26,6 +26,8 @@ class MergedFs {
   }
 
   _getRelativePath(path) {
+    path = String(path);
+
     const relativePath = path.replace(this.devicesManager.getDevicesPath(), '');
 
     if (relativePath === path) {
@@ -59,6 +61,7 @@ class MergedFs {
     );
   }
 
+  // TODO has to wait absolute path as first parameter
   _resolvePathSync(relativePath) {
     if (!relativePath) {
       throw _createNotExistError(`Empty relative path parsed from: ${relativePath}`);
