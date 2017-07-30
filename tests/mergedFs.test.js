@@ -73,7 +73,33 @@ describe('mergedFs', () => {
   });
 
   //xdescribe('#_resolvePath()');
-  //xdescribe('#_resolvePathSync()');
+
+  describe('#_resolvePathSync()', () => {
+    it('should return path to of device', () => {
+      const fullPath = join(testFsPath, 'file1.txt');
+      const relativePath = mergedFs._getRelativePath(fullPath);
+      const resolvedPath = mergedFs._resolvePathSync(relativePath);
+
+      expect(resolvedPath).to.be(`${testFsPath}/dev1/file1.txt`);
+    });
+
+    //TODO or throw an error?
+    it('should return null if path not found', () => {
+      const fullPath = join(testFsPath, 'file-not-exist.txt');
+      const relativePath = mergedFs._getRelativePath(fullPath);
+      const resolvedPath = mergedFs._resolvePathSync(relativePath);
+
+      expect(resolvedPath).to.be(null);
+    });
+
+    it('should throw an ENOENT error if path is undefined', () => {
+      expect(mergedFs._resolvePathSync).to.throwException((e) => {
+        expect(e).to.be.a(Error);
+        expect(e).to.have.key('code');
+        expect(e.code).to.be('ENOENT');
+      });
+    });
+  });
 
   describe('#mkdir()', () => {
     it('Should create directory on each device (1 level)', (done) => {
