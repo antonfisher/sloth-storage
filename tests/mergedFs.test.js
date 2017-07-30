@@ -40,7 +40,30 @@ describe('mergedFs', () => {
     removeTestFs();
   });
 
-  //xdescribe('#_getRelativePath()');
+  describe('#_getRelativePath()', () => {
+    it('should return path w/o base path', () => {
+      const path = '/test/test.txt';
+      const fullPath = join(devicesManager.getDevicesPath(), path);
+      expect(mergedFs._getRelativePath(fullPath)).to.be(path);
+    });
+
+    it('should not resolve wrong paths', () => {
+      const path = '/test/test.txt';
+      expect(mergedFs._getRelativePath.bind(mergedFs))
+        .withArgs(path)
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err).to.have.key('code');
+          expect(err.code).to.be('ENOENT');
+        });
+    });
+
+    it('should return "/" for devices root path', () => {
+      expect(mergedFs._getRelativePath(devicesManager.getDevicesPath())).to.be('/');
+    });
+  });
+
   //xdescribe('#_resolvePath()');
   //xdescribe('#_resolvePathSync()');
 
@@ -262,7 +285,7 @@ describe('mergedFs', () => {
   });
 
   describe('#writeFile()', () => {
-    it('Should write file to the root', (done) => {
+    it('Should write file to the root #only', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'new-file.txt');
 

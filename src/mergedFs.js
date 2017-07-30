@@ -25,13 +25,23 @@ class MergedFs {
     this.devicesManager = devicesManager;
   }
 
-  _getRelativePath(ftpPath) {
-    return ftpPath.replace(this.devicesManager.getDevicesPath(), '');
+  _getRelativePath(path) {
+    const relativePath = path.replace(this.devicesManager.getDevicesPath(), '');
+
+    if (relativePath === path) {
+      throw _createNotExistError(`Cannot resolve path "${path}", it is out of device directories`);
+    }
+
+    return (relativePath || '/');
   }
 
   _resolvePath(path, callback) {
-    const relativePath = this._getRelativePath(path);
-    //console.log(`-- resolvePath: "${ftpPath}", relative: "${relativePath}"`);
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      return process.nextTick(() => callback(e));
+    }
 
     if (!relativePath) {
       return process.nextTick(() => callback(new Error(`Empty relative path parsed from: ${relativePath}`)));
@@ -76,7 +86,13 @@ class MergedFs {
   }
 
   createReadStream(path, options) {
-    const relativePath = this._getRelativePath(path);
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      return process.nextTick(() => callback(e));
+    }
+
     const resolvedPath = this._resolvePathSync(relativePath);
 
     if (resolvedPath) {
@@ -87,7 +103,13 @@ class MergedFs {
   }
 
   createWriteStream(path, options) {
-    const relativePath = this._getRelativePath(path);
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      throw _createNotExistError(`Cannot create write stream for "${relativePath}": ${e}`);
+    }
+
     const fileName = basename(relativePath);
     const resolvedDir = this._resolvePathSync(dirname(relativePath));
 
@@ -106,19 +128,15 @@ class MergedFs {
   }
 
   exists(path, callback) {
-    const relativePath = this._getRelativePath(path);
-
     return this._resolvePath(
-      relativePath,
+      path,
       (err, resolvedPath) => process.nextTick(() => callback(Boolean(resolvedPath)))
     );
   }
 
   stat(path, callback) {
-    const relativePath = this._getRelativePath(path);
-
     return this._resolvePath(
-      relativePath,
+      path,
       (err, resolvedPath) => {
         if (err) {
           return process.nextTick(() => callback(err));
@@ -129,10 +147,8 @@ class MergedFs {
   }
 
   lstat(path, callback) {
-    const relativePath = this._getRelativePath(path);
-
     return this._resolvePath(
-      relativePath,
+      path,
       (err, resolvedPath) => {
         if (err) {
           return process.nextTick(() => callback(err));
@@ -144,7 +160,13 @@ class MergedFs {
 
   mkdir(path, ...callbacks) {
     const callback = callbacks.slice(-1)[0];
-    const relativePath = this._getRelativePath(path);
+
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      return process.nextTick(() => callback(e));
+    }
 
     const mkdirRecursive = (p, done, initialP) => {
       initialP = (initialP || p);
@@ -167,8 +189,14 @@ class MergedFs {
   }
 
   readdir(path, callback) {
-    const relativePath = this._getRelativePath(path);
     let isExist = false;
+
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      return process.nextTick(() => callback(e));
+    }
 
     async.concat(
       this.devicesManager.getDevices().map(d => join(d, relativePath)),
@@ -192,8 +220,14 @@ class MergedFs {
   }
 
   rmdir(path, callback) {
-    const relativePath = this._getRelativePath(path);
     let isExist = false;
+
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      return process.nextTick(() => callback(e));
+    }
 
     async.each(
       this.devicesManager.getDevices().map(d => join(d, relativePath)),
@@ -222,7 +256,12 @@ class MergedFs {
       options = {};
     }
 
-    const relativePath = this._getRelativePath(path);
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      return process.nextTick(() => callback(e));
+    }
 
     async.tryEach(
       this.devicesManager.getDevices().map(dev => (done => fs.readFile(join(dev, relativePath), options, done))),
@@ -231,8 +270,14 @@ class MergedFs {
   }
 
   unlink(path, callback) {
-    const relativePath = this._getRelativePath(path);
     let isExist = false;
+
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      return process.nextTick(() => callback(e));
+    }
 
     async.each(
       this.devicesManager.getDevices().map(dev => join(dev, relativePath)),
@@ -261,15 +306,14 @@ class MergedFs {
       options = {};
     }
 
-    const relativePath = this._getRelativePath(path);
-    const relativeDirPath = dirname(relativePath);
+    const dirPath = dirname(path);
 
-    this.stat(relativeDirPath, (errStat, stat) => {
+    this.stat(dirPath, (errStat, stat) => {
       if (errStat) { // if not exist on any device
         return callback(errStat);
       } else if (!stat.isDirectory()) {
         return callback(
-          _createError(`Failed to resolve path "${relativePath}": path contains a file in the middle`, EISFILE)
+          _createError(`Failed to resolve path "${dirPath}": path contains a file in the middle`, EISFILE)
         );
       }
 
@@ -278,10 +322,18 @@ class MergedFs {
           return process.nextTick(() => callback(err));
         }
 
-        this.mkdir(relativeDirPath, (errMkdir) => { // make dir if it isn't exist on the selected device
+        this.mkdir(dirPath, (errMkdir) => { // make dir if it isn't exist on the selected device
           if (errMkdir && errMkdir.code !== EEXIST) {
             return callback(errMkdir);
           }
+
+          let relativePath;
+          try {
+            relativePath = this._getRelativePath(path);
+          } catch (e) {
+            return process.nextTick(() => callback(e));
+          }
+
           fs.writeFile(join(device, relativePath), data, options, callback);
         });
       });
