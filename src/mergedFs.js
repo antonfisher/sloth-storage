@@ -90,7 +90,7 @@ class MergedFs {
     try {
       relativePath = this._getRelativePath(path);
     } catch (e) {
-      return process.nextTick(() => callback(e));
+      throw _createNotExistError(`Cannot create read stream for "${relativePath}": ${e}`);
     }
 
     const resolvedPath = this._resolvePathSync(relativePath);
