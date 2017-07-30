@@ -43,10 +43,6 @@ class MergedFs {
       return process.nextTick(() => callback(e));
     }
 
-    if (!relativePath) {
-      return process.nextTick(() => callback(new Error(`Empty relative path parsed from: ${relativePath}`)));
-    }
-
     // TODO implement random access to devices
     async.detect(
       this.devicesManager.getDevices(),
