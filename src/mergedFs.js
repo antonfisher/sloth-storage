@@ -65,7 +65,7 @@ class MergedFs {
     }
 
     // TODO implement random access to devices
-    return this.devicesManager.getDevices().reduce((acc, dev) => {
+    const resolvedPath = this.devicesManager.getDevices().reduce((acc, dev) => {
       if (acc) {
         return acc;
       }
@@ -77,6 +77,12 @@ class MergedFs {
         return null;
       }
     }, null);
+
+    if (!resolvedPath) {
+      throw _createNotExistError(`Failed to resolve path "${relativePath}"`);
+    }
+
+    return resolvedPath;
   }
 
   createReadStream(path, options) {
@@ -87,7 +93,12 @@ class MergedFs {
       throw _createNotExistError(`Cannot create read stream for "${relativePath}": ${e}`);
     }
 
-    const resolvedPath = this._resolvePathSync(relativePath);
+    let resolvedPath;
+    try {
+      resolvedPath = this._resolvePathSync(relativePath);
+    } catch (e) {
+      throw _createNotExistError(`Cannot create read stream for "${relativePath}": ${e}`);
+    }
 
     if (resolvedPath) {
       return fs.createReadStream(resolvedPath, options);
@@ -105,7 +116,13 @@ class MergedFs {
     }
 
     const fileName = basename(relativePath);
-    const resolvedDir = this._resolvePathSync(dirname(relativePath));
+
+    let resolvedDir;
+    try {
+      resolvedDir = this._resolvePathSync(dirname(relativePath));
+    } catch (e) {
+      throw _createNotExistError(`Cannot create read stream for "${resolvedDir}": ${e}`);
+    }
 
     if (resolvedDir) {
       const stat = fs.statSync(resolvedDir);

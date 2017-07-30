@@ -83,13 +83,18 @@ describe('mergedFs', () => {
       expect(resolvedPath).to.be(`${testFsPath}/dev1/file1.txt`);
     });
 
-    //TODO or throw an error?
-    it('should return null if path not found', () => {
+    it('should throw an ENOENT error if path is not exist', () => {
       const fullPath = join(testFsPath, 'file-not-exist.txt');
       const relativePath = mergedFs._getRelativePath(fullPath);
-      const resolvedPath = mergedFs._resolvePathSync(relativePath);
 
-      expect(resolvedPath).to.be(null);
+      expect(mergedFs._resolvePathSync.bind(mergedFs))
+        .withArgs(relativePath)
+        .to
+        .throwException((e) => {
+          expect(e).to.be.a(Error);
+          expect(e).to.have.key('code');
+          expect(e.code).to.be('ENOENT');
+        });
     });
 
     it('should throw an ENOENT error if path is undefined', () => {
