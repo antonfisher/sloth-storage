@@ -105,19 +105,14 @@ describe('mergedFs', () => {
 
   describe('#_resolvePathSync()', () => {
     it('should return path to file on device', () => {
-      const fullPath = join(testFsPath, 'file1.txt');
-      const relativePath = mergedFs._getRelativePath(fullPath);
-      const resolvedPath = mergedFs._resolvePathSync(relativePath);
+      const resolvedPath = mergedFs._resolvePathSync(join(testFsPath, 'file1.txt'));
 
       expect(resolvedPath).to.be(`${testFsPath}/dev1/file1.txt`);
     });
 
     it('should throw an ENOENT error if path is not exist', () => {
-      const fullPath = join(testFsPath, 'file-not-exist.txt');
-      const relativePath = mergedFs._getRelativePath(fullPath);
-
       expect(mergedFs._resolvePathSync.bind(mergedFs))
-        .withArgs(relativePath)
+        .withArgs(join(testFsPath, 'file-not-exist.txt'))
         .to
         .throwException((e) => {
           expect(e).to.be.a(Error);

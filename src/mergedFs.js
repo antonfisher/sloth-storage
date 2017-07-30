@@ -61,10 +61,12 @@ class MergedFs {
     );
   }
 
-  // TODO has to wait absolute path as first parameter
-  _resolvePathSync(relativePath) {
-    if (!relativePath) {
-      throw _createNotExistError(`Empty relative path parsed from: ${relativePath}`);
+  _resolvePathSync(path) {
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      throw _createNotExistError(`Empty relative path parsed from: ${path}`);
     }
 
     // TODO implement random access to devices
@@ -89,40 +91,26 @@ class MergedFs {
   }
 
   createReadStream(path, options) {
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      throw _createNotExistError(`Cannot create read stream for "${relativePath}": ${e}`);
-    }
-
     let resolvedPath;
     try {
-      resolvedPath = this._resolvePathSync(relativePath);
+      resolvedPath = this._resolvePathSync(path);
     } catch (e) {
-      throw _createNotExistError(`Cannot create read stream for "${relativePath}": ${e}`);
+      throw _createNotExistError(`Cannot create read stream for "${path}": ${e}`);
     }
 
     if (resolvedPath) {
       return fs.createReadStream(resolvedPath, options);
     }
 
-    throw _createNotExistError(`Cannot create read stream for "${relativePath}"`);
+    throw _createNotExistError(`Cannot create read stream for "${resolvedPath}"`);
   }
 
   createWriteStream(path, options) {
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      throw _createNotExistError(`Cannot create write stream for "${relativePath}": ${e}`);
-    }
-
-    const fileName = basename(relativePath);
+    const fileName = basename(path);
 
     let resolvedDir;
     try {
-      resolvedDir = this._resolvePathSync(dirname(relativePath));
+      resolvedDir = this._resolvePathSync(dirname(path));
     } catch (e) {
       throw _createNotExistError(`Cannot create read stream for "${resolvedDir}": ${e}`);
     }
@@ -131,14 +119,14 @@ class MergedFs {
       const stat = fs.statSync(resolvedDir);
       if (!stat.isDirectory()) {
         throw _createError(
-          `Failed to resolve path "${relativePath}": path contains a file in the middle`,
+          `Failed to resolve path "${resolvedDir}": path contains a file in the middle`,
           EISFILE
         );
       }
       return fs.createWriteStream(join(resolvedDir, fileName), options);
     }
 
-    throw _createNotExistError(`Cannot create write stream for "${relativePath}"`);
+    throw _createNotExistError(`Cannot create write stream for "${path}"`);
   }
 
   exists(path, callback) {
