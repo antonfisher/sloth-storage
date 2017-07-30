@@ -53,8 +53,6 @@ class MergedFs {
       (err, dev) => {
         if (!err && typeof dev === 'undefined') {
           return callback(_createNotExistError(`Failed to resolve path "${relativePath}"`));
-        } else if (err) {
-          return callback(err);
         }
         callback(err, join(dev, relativePath));
       }
