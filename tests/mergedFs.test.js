@@ -40,6 +40,14 @@ describe('mergedFs', () => {
     removeTestFs();
   });
 
+  describe('#constructor', () => {
+    it('should require devicesManager parameter', () => {
+      expect(() => new MergedFs()).to.throwException((e) => {
+        expect(e.message).to.contain('devicesManager');
+      });
+    });
+  });
+
   describe('#_getRelativePath()', () => {
     it('should return path w/o base path', () => {
       const path = '/test/test.txt';
