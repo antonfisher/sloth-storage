@@ -456,6 +456,18 @@ describe('mergedFs', () => {
           done();
         });
     });
+
+    it('Should return ENOENT error for empty path', (done) => {
+      expect(mergedFs.createReadStream.bind(mergedFs))
+        .withArgs('')
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err).to.have.key('code');
+          expect(err.code).to.be('ENOENT');
+          done();
+        });
+    });
   });
 
   describe('#createWriteStream()', () => {
@@ -534,6 +546,18 @@ describe('mergedFs', () => {
     it('Should return ENOENT error for non-existing directory', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs(join(testFsPath, 'dir-not-exist', 'file-not-exist.txt'))
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err).to.have.key('code');
+          expect(err.code).to.be('ENOENT');
+          done();
+        });
+    });
+
+    it('Should return ENOENT error for empty path', (done) => {
+      expect(mergedFs.createWriteStream.bind(mergedFs))
+        .withArgs('')
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);

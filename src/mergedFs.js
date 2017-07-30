@@ -98,11 +98,7 @@ class MergedFs {
       throw _createNotExistError(`Cannot create read stream for "${path}": ${e}`);
     }
 
-    if (resolvedPath) {
-      return fs.createReadStream(resolvedPath, options);
-    }
-
-    throw _createNotExistError(`Cannot create read stream for "${resolvedPath}"`);
+    return fs.createReadStream(resolvedPath, options);
   }
 
   createWriteStream(path, options) {
@@ -115,18 +111,16 @@ class MergedFs {
       throw _createNotExistError(`Cannot create read stream for "${resolvedDir}": ${e}`);
     }
 
-    if (resolvedDir) {
-      const stat = fs.statSync(resolvedDir);
-      if (!stat.isDirectory()) {
-        throw _createError(
-          `Failed to resolve path "${resolvedDir}": path contains a file in the middle`,
-          EISFILE
-        );
-      }
-      return fs.createWriteStream(join(resolvedDir, fileName), options);
+    const stat = fs.statSync(resolvedDir);
+
+    if (!stat.isDirectory()) {
+      throw _createError(
+        `Failed to resolve path "${resolvedDir}": path contains a file in the middle`,
+        EISFILE
+      );
     }
 
-    throw _createNotExistError(`Cannot create write stream for "${path}"`);
+    return fs.createWriteStream(join(resolvedDir, fileName), options);
   }
 
   exists(path, callback) {
