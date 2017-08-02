@@ -74,6 +74,7 @@ class DevicesManager extends EventEmitter {
         }
       ),
       (existingStorageDirs, nonExistingStorageDirs, done) => {
+        const newStorageDirs = [];
         if (nonExistingStorageDirs.length > 0) {
           async.each(
             nonExistingStorageDirs,
@@ -84,18 +85,18 @@ class DevicesManager extends EventEmitter {
                   `Fail to create storage directory on "${dir}" device, skip it in list: ${mkdirErr}`
                 );
               } else {
-                existingStorageDirs.push(dir);
+                newStorageDirs.push(dir);
               }
               return mkdirDone(null);
             }),
-            err => done(err, existingStorageDirs)
+            err => done(err, existingStorageDirs.concat(newStorageDirs), newStorageDirs)
           );
         } else {
-          return done(null, existingStorageDirs);
+          return done(null, existingStorageDirs, newStorageDirs);
         }
       }
-    ], (err, devices) => {
-      //console.log('Looked up devices:', err, devices);
+    ], (err, devices, newStorageDirs) => {
+      //console.log('Looked up devices:', err, devices, newStorageDirs);
 
       if (err) {
         return this.emit(EVENTS.ERROR, new Error(`Fail to create storage directories: ${err}`));
@@ -109,6 +110,8 @@ class DevicesManager extends EventEmitter {
         this.isInitLookup = false;
         this.emit(EVENTS.READY, this.devices);
       }
+
+      newStorageDirs.forEach((dir) => this.emit(EVENTS.NEW_DEVICE, dir));
     });
   }
 

@@ -7,6 +7,7 @@ const {DevicesManager} = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
+const storageDirName = '.slug-storage';
 
 describe('devicesManager', () => {
   describe('Initialization', () => {
@@ -14,6 +15,8 @@ describe('devicesManager', () => {
 
     beforeEach(() => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
+      exec(`mkdir -p ./${testFsDir}/dev1/${storageDirName}`);
+      exec(`mkdir -p ./${testFsDir}/dev2/${storageDirName}`);
     });
 
     afterEach(() => {
@@ -22,9 +25,26 @@ describe('devicesManager', () => {
       exec(`rm -rf ./${testFsDir}`);
     });
 
+    it('Should emit "newDevice" event', (done) => {
+      const timeout = 10;
+      devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+      devicesManager.on('ready', () => {
+        expect(devicesManager.getDevices()).to.be.an('array');
+        expect(devicesManager.getDevices()).to.have.length(2);
+
+        devicesManager.on(EVENTS.NEW_DEVICE, (path) => {
+          expect(path).to.be(join(testFsPath, 'dev3', storageDirName));
+          expect(devicesManager.getDevices()).to.be.an('array');
+          expect(devicesManager.getDevices()).to.have.length(3);
+          done();
+        });
+
+        exec(`mkdir -p ./${testFsDir}/dev3`);
+      });
+    });
+
     it('Should find new device', (done) => {
       const timeout = 10;
-      const storageDirName = '.slug-storage';
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
       devicesManager.on('ready', () => {
         expect(devicesManager.getDevices()).to.be.an('array');
@@ -42,9 +62,6 @@ describe('devicesManager', () => {
         }, timeout * 1.1);
       });
     });
-
-    xit('Should create storage directory on new divice');
-    xit('Should mark new device as "read-only" during synchronization');
   });
 
   describe('Runtime methods', () => {
