@@ -26,7 +26,7 @@ describe('devicesManager', () => {
     });
 
     it('Should emit "newDevice" event', (done) => {
-      const timeout = 10;
+      const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
       devicesManager.on('ready', () => {
         expect(devicesManager.getDevices()).to.be.an('array');
@@ -44,7 +44,7 @@ describe('devicesManager', () => {
     });
 
     it('Should find new device', (done) => {
-      const timeout = 10;
+      const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
       devicesManager.on('ready', () => {
         expect(devicesManager.getDevices()).to.be.an('array');
@@ -110,8 +110,6 @@ describe('devicesManager', () => {
           done(err);
         });
       });
-
-      xit('Should not return "read-only" devices');
     });
   });
 });
