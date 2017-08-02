@@ -139,8 +139,25 @@ describe('mergedFs', () => {
   });
 
   describe('#mkdir()', () => {
-    it('Should create directory on each device (1 level)', (done) => {
+    it('Should create new directory in the storage directory on a device', (done) => {
       const dir = 'dir-new-1';
+      const devices = devicesManager.getDevices();
+
+      mergedFs.mkdir(join(testFsPath, dir), (errMkdir) => {
+        if (errMkdir) {
+          return done(errMkdir);
+        }
+
+        fs.readdir(devices[0], (errReaddir, files) => {
+          expect(files).to.contain(dir);
+          expect(devices[0]).to.contain(storageDirName);
+          done(errReaddir);
+        });
+      });
+    });
+
+    it('Should create directory on each device (1 level)', (done) => {
+      const dir = 'dir-new-2';
       const devices = devicesManager.getDevices();
 
       mergedFs.mkdir(join(testFsPath, dir), (errMkdir) => {
@@ -162,7 +179,7 @@ describe('mergedFs', () => {
     });
 
     it('Should create directory on each device (2 level)', (done) => {
-      const dir = 'dir-new-2';
+      const dir = 'dir-new-3';
       const subDir = 'dir1';
       const devices = devicesManager.getDevices();
       mergedFs.mkdir(join(testFsPath, subDir, dir), (errMkdir) => {
@@ -182,8 +199,6 @@ describe('mergedFs', () => {
         );
       });
     });
-
-    xit('Should create new directories in the storage directory on a device');
   });
 
   describe('#readdir()', () => {
