@@ -3,14 +3,10 @@ const {join} = require('path');
 const EventEmitter = require('events');
 const async = require('async');
 
+const EVENTS = require('./appEvents');
+
 const DEFAULT_STORAGE_DIR_NAME = '.slug-storage';
 const DEFAULT_LOOK_FOR_INTERVAL = 5 * 1000;
-
-const EVENTS = {
-  WARN: 'warn',
-  ERROR: 'error',
-  READY: 'ready'
-};
 
 // the maximum is inclusive and the minimum is inclusive
 function _getRandomIntInclusive(min, max) {
@@ -126,7 +122,12 @@ class DevicesManager extends EventEmitter {
 
   getDeviceForWrite(callback) {
     // use capacity analisys
-    process.nextTick(() => callback(null, this.devices[_getRandomIntInclusive(0, this.devices.length - 1)]));
+    process.nextTick(() => {
+      if (this.devices.length > 0) {
+        return callback(null, this.devices[_getRandomIntInclusive(0, this.devices.length - 1)]);
+      }
+      return callback(null, null); // throw an error?
+    });
   }
 
   destroy() {

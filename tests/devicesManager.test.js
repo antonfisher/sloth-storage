@@ -1,7 +1,9 @@
 const {join} = require('path');
 const expect = require('expect.js');
+
 const {exec} = require('./utils');
-const {DevicesManager, EVENTS} = require('../src/devicesManager');
+const EVENTS = require('../src/appEvents');
+const {DevicesManager} = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
