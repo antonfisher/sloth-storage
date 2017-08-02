@@ -4,22 +4,23 @@ const async = require('async');
 const expect = require('expect.js');
 const {exec} = require('./utils');
 const {MergedFs, _createError, _createNotExistError} = require('../src/mergedFs');
-const {DevicesManager} = require('../src/devicesManager');
+const {DevicesManager, EVENTS} = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
+const storageDirName = '.slug-storage';
 
 let devicesManager;
 let mergedFs;
 
 function createTestFs() {
   exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
-  exec(`mkdir -p ./${testFsDir}/dev1/dir{1,2}`);
-  exec(`mkdir -p ./${testFsDir}/dev2/dir{2,3}`);
-  exec(`touch ./${testFsDir}/dev1/file1.txt`);
-  exec(`touch ./${testFsDir}/dev1/dir1/file1-1.txt`);
-  exec(`echo 'content' > ./${testFsDir}/dev2/file2.txt`);
-  exec(`ln -s ../file2.txt ./${testFsDir}/dev2/dir3/link-file2.txt`);
+  exec(`mkdir -p ./${testFsDir}/dev1/.slug-storage/dir{1,2}`);
+  exec(`mkdir -p ./${testFsDir}/dev2/.slug-storage/dir{2,3}`);
+  exec(`touch ./${testFsDir}/dev1/.slug-storage/file1.txt`);
+  exec(`touch ./${testFsDir}/dev1/.slug-storage/dir1/file1-1.txt`);
+  exec(`echo 'content' > ./${testFsDir}/dev2/.slug-storage/file2.txt`);
+  exec(`ln -s ../file2.txt ./${testFsDir}/dev2/.slug-storage/dir3/link-file2.txt`);
 }
 
 function removeTestFs() {
@@ -27,10 +28,15 @@ function removeTestFs() {
 }
 
 describe('mergedFs', () => {
-  beforeEach(() => {
+  beforeEach((done) => {
     createTestFs();
-    devicesManager = new DevicesManager(testFsPath);
-    mergedFs = new MergedFs(devicesManager);
+    devicesManager = new DevicesManager(testFsPath, 1000, storageDirName);
+    devicesManager.on(EVENTS.WARN, message => console.log(`WARN: ${message}`));
+    devicesManager.on(EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
+    devicesManager.on(EVENTS.READY, () => {
+      mergedFs = new MergedFs(devicesManager);
+      done();
+    });
   });
 
   afterEach(() => {
@@ -77,7 +83,7 @@ describe('mergedFs', () => {
       mergedFs._resolvePath(join(testFsPath, 'file1.txt'), (err, res) => {
         expect(err).to.not.be.ok();
         expect(res).to.be.a('string');
-        expect(res).to.be(`${testFsPath}/dev1/file1.txt`);
+        expect(res).to.be(`${testFsPath}/dev1/.slug-storage/file1.txt`);
         done(err);
       });
     });
@@ -107,12 +113,12 @@ describe('mergedFs', () => {
     it('should return path to file on device', () => {
       const resolvedPath = mergedFs._resolvePathSync(join(testFsPath, 'file1.txt'));
 
-      expect(resolvedPath).to.be(`${testFsPath}/dev1/file1.txt`);
+      expect(resolvedPath).to.be(`${testFsPath}/dev1/.slug-storage/file1.txt`);
     });
 
     it('should throw an ENOENT error if path is not exist', () => {
       expect(mergedFs._resolvePathSync.bind(mergedFs))
-        .withArgs(join(testFsPath, 'file-not-exist.txt'))
+        .withArgs(join(testFsPath, '.slug-storage/file-not-exist.txt'))
         .to
         .throwException((e) => {
           expect(e).to.be.a(Error);
