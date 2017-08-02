@@ -111,7 +111,7 @@ class DevicesManager extends EventEmitter {
         this.emit(EVENTS.READY, this.devices);
       }
 
-      newStorageDirs.forEach((dir) => this.emit(EVENTS.NEW_DEVICE, dir));
+      newStorageDirs.forEach(dir => this.emit(EVENTS.NEW_DEVICE, dir));
     });
   }
 

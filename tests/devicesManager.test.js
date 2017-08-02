@@ -66,7 +66,6 @@ describe('devicesManager', () => {
 
   describe('Runtime methods', () => {
     let devicesManager;
-    const storageDirName = '.slug-storage';
 
     beforeEach((done) => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
