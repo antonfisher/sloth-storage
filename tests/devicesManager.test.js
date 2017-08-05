@@ -10,6 +10,19 @@ const testFsPath = join(process.cwd(), testFsDir);
 const storageDirName = '.slug-storage';
 
 describe('devicesManager', () => {
+  describe('Constructor', () => {
+    it('Should throw an error if "devicePath" is undefined', (done) => {
+      try {
+        const deviceManager = new DevicesManager();
+        done(`No error was thrown: "${deviceManager.getDevicesPath()}"`);
+      } catch (e) {
+        expect(e).to.be.an(Error);
+        expect(e.message).to.contain('devicesPath');
+        done();
+      }
+    });
+  });
+
   describe('Initialization', () => {
     let devicesManager;
 
@@ -28,7 +41,7 @@ describe('devicesManager', () => {
     it('Should emit "newDevice" event', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
-      devicesManager.on('ready', () => {
+      devicesManager.on(EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
 
@@ -46,7 +59,7 @@ describe('devicesManager', () => {
     it('Should find new device', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
-      devicesManager.on('ready', () => {
+      devicesManager.on(EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
         expect(devicesManager.getDevices()).to.contain(join(testFsPath, 'dev1', storageDirName));
@@ -62,17 +75,52 @@ describe('devicesManager', () => {
         }, timeout * 1.1);
       });
     });
+
+    it('Should emit "error" event if there are no directories in devices path', (done) => {
+      exec(`mkdir -p ./${testFsDir}/empty`);
+      const timeout = 1000;
+      const emptyPath = join(testFsPath, 'empty');
+      const stopTimeout = setTimeout(() => {
+        done('"error" event hasn\'t been thrown');
+      }, timeout * 0.9);
+      devicesManager = new DevicesManager(emptyPath, timeout, storageDirName);
+      devicesManager.on(EVENTS.ERROR, (e) => {
+        clearTimeout(stopTimeout);
+        expect(e).to.be.an(Error);
+        expect(e.message).to.contain('Fail to find any devices');
+        expect(e.message).to.contain(emptyPath);
+        done();
+      });
+    });
+
+    it('Should emit "error" event for non-existing devices path', (done) => {
+      const timeout = 100;
+      const nonExistingPath = '/not-exist';
+      const stopTimeout = setTimeout(() => {
+        done('"error" event hasn\'t been thrown');
+      }, timeout * 0.9);
+      devicesManager = new DevicesManager(nonExistingPath, timeout, storageDirName);
+      devicesManager.on(EVENTS.ERROR, (e) => {
+        clearTimeout(stopTimeout);
+        expect(e).to.be.an(Error);
+        expect(e.message).to.contain('Cannot read devices directory');
+        expect(e.message).to.contain('ENOENT');
+        expect(e.message).to.contain(nonExistingPath);
+        done();
+      });
+    });
   });
 
   describe('Runtime methods', () => {
     let devicesManager;
+    const timeout = 100;
 
     beforeEach((done) => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
 
-      devicesManager = new DevicesManager(testFsPath, 1000, storageDirName);
-      devicesManager.on(EVENTS.WARN, message => console.log(`WARN: ${message}`));
-      devicesManager.on(EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
+      devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+      //devicesManager.on(EVENTS.WARN, message => console.log(`WARN: ${message}`));
+      //devicesManager.on(EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
       devicesManager.on(EVENTS.READY, () => done());
     });
 
@@ -109,6 +157,19 @@ describe('devicesManager', () => {
           expect(devices).to.contain(device);
           done(err);
         });
+      });
+
+      it('Should return null if no devices exist', (done) => {
+        devicesManager.on(EVENTS.ERROR, () => {
+          //skip;
+        });
+        exec(`rm -rf ./${testFsDir}/*`);
+        setTimeout(() => {
+          devicesManager.getDeviceForWrite((err, device) => {
+            expect(device).to.be(null);
+            done(err);
+          });
+        }, timeout * 1.1);
       });
     });
   });

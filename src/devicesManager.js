@@ -60,7 +60,7 @@ class DevicesManager extends EventEmitter {
         return done(null, files.map(fileName => join(this.devicesPath, fileName)));
       }),
       (filePaths, done) => async.filter(filePaths, _asyncFilterDirs, (err, dirs) => {
-        if (!dirs) {
+        if (!dirs.length) {
           return done(new Error(`Fail to find any devices in "${this.devicesPath}"`));
         }
         return done(null, dirs.map(dir => join(dir, this.storageDirName)));
@@ -99,7 +99,8 @@ class DevicesManager extends EventEmitter {
       //console.log('Looked up devices:', err, devices, newStorageDirs);
 
       if (err) {
-        return this.emit(EVENTS.ERROR, new Error(`Fail to create storage directories: ${err}`));
+        this.devices = null;
+        return this.emit(EVENTS.ERROR, new Error(`Fail to process storage directories: ${err}`));
       }
 
       const isInitLookup = (!this.devices && this.isInitLookup);
@@ -126,7 +127,7 @@ class DevicesManager extends EventEmitter {
   getDeviceForWrite(callback) {
     // use capacity analisys
     process.nextTick(() => {
-      if (this.devices.length > 0) {
+      if (this.devices && this.devices.length > 0) {
         return callback(null, this.devices[_getRandomIntInclusive(0, this.devices.length - 1)]);
       }
       return callback(null, null); // throw an error?
