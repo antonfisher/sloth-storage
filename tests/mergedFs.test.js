@@ -199,6 +199,14 @@ describe('mergedFs', () => {
         );
       });
     });
+
+    it('Should return ENOENT for out of scope path', (done) => {
+      mergedFs.mkdir('/path-out-of-scope', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('ENOENT');
+        done();
+      });
+    });
   });
 
   describe('#readdir()', () => {
@@ -232,6 +240,14 @@ describe('mergedFs', () => {
         done();
       });
     });
+
+    it('Should return ENOENT for out of scope path', (done) => {
+      mergedFs.readdir('/path-out-of-scope', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('ENOENT');
+        done();
+      });
+    });
   });
 
   describe('#rmdir()', () => {
@@ -244,6 +260,14 @@ describe('mergedFs', () => {
 
     it('Should return error for non-existing directory', (done) => {
       mergedFs.rmdir(join(testFsPath, 'dir-not-exist'), (err) => {
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('ENOENT');
+        done();
+      });
+    });
+
+    it('Should return ENOENT for out of scope path', (done) => {
+      mergedFs.mkdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
         expect(err.code).to.be('ENOENT');
         done();
@@ -344,6 +368,15 @@ describe('mergedFs', () => {
         done();
       });
     });
+
+    it('Should return ENOENT for out of scope path', (done) => {
+      mergedFs.readFile('/path-out-of-scope', (err, data) => {
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('ENOENT');
+        expect(data).to.be(undefined);
+        done();
+      });
+    });
   });
 
   describe('#unlink()', () => {
@@ -363,6 +396,15 @@ describe('mergedFs', () => {
       const filePath = join(testFsPath, 'file-not-exist.txt');
       mergedFs.unlink(filePath, (err, res) => {
         expect(err).to.be.a(Error);
+        expect(err.code).to.be('ENOENT');
+        expect(res).to.be(undefined);
+        done();
+      });
+    });
+
+    it('Should return ENOENT for out of scope path', (done) => {
+      mergedFs.unlink('/path-out-of-scope', (err, res) => {
+        expect(err).to.be.an(Error);
         expect(err.code).to.be('ENOENT');
         expect(res).to.be(undefined);
         done();
@@ -431,6 +473,14 @@ describe('mergedFs', () => {
       const newFilePath = join(testFsPath, 'dir-non-existing', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err.code).to.be('ENOENT');
+        done();
+      });
+    });
+
+    it('Should return ENOENT for out of scope path', (done) => {
+      mergedFs.writeFile('/path-out-of-scope', '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
         expect(err.code).to.be('ENOENT');
         done();
