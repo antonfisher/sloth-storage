@@ -267,7 +267,7 @@ describe('mergedFs', () => {
     });
 
     it('Should return ENOENT for out of scope path', (done) => {
-      mergedFs.mkdir('/path-out-of-scope', (err) => {
+      mergedFs.rmdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
         expect(err.code).to.be('ENOENT');
         done();
