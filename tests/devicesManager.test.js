@@ -2,8 +2,7 @@ const {join} = require('path');
 const expect = require('expect.js');
 
 const {exec} = require('./utils');
-const EVENTS = require('../src/appEvents');
-const {DevicesManager} = require('../src/devicesManager');
+const DevicesManager = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
@@ -13,8 +12,8 @@ describe('devicesManager', () => {
   describe('Constructor', () => {
     it('Should throw an error if "devicePath" is undefined', (done) => {
       try {
-        const deviceManager = new DevicesManager();
-        done(`No error was thrown: "${deviceManager.getDevicesPath()}"`);
+        const devicesManager = new DevicesManager();
+        done(`No error was thrown: "${devicesManager.getDevicesPath()}"`);
       } catch (e) {
         expect(e).to.be.an(Error);
         expect(e.message).to.contain('devicesPath');
@@ -41,11 +40,11 @@ describe('devicesManager', () => {
     it('Should emit "deviceAdded" event', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
-      devicesManager.on(EVENTS.READY, () => {
+      devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
 
-        devicesManager.on(EVENTS.DEVICE_ADDED, (path) => {
+        devicesManager.on(DevicesManager.EVENTS.DEVICE_ADDED, (path) => {
           expect(path).to.be(join(testFsPath, 'dev3', storageDirName));
           expect(devicesManager.getDevices()).to.be.an('array');
           expect(devicesManager.getDevices()).to.have.length(3);
@@ -59,11 +58,11 @@ describe('devicesManager', () => {
     it('Should emit "deviceRemoved" event', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
-      devicesManager.on(EVENTS.READY, () => {
+      devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
 
-        devicesManager.on(EVENTS.DEVICE_REMOVED, (path) => {
+        devicesManager.on(DevicesManager.EVENTS.DEVICE_REMOVED, (path) => {
           expect(path).to.be(join(testFsPath, 'dev1', storageDirName));
           expect(devicesManager.getDevices()).to.be.an('array');
           expect(devicesManager.getDevices()).to.have.length(1);
@@ -77,7 +76,7 @@ describe('devicesManager', () => {
     it('Should find new device', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
-      devicesManager.on(EVENTS.READY, () => {
+      devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
         expect(devicesManager.getDevices()).to.contain(join(testFsPath, 'dev1', storageDirName));
@@ -102,7 +101,7 @@ describe('devicesManager', () => {
         done('"error" event hasn\'t been thrown');
       }, timeout * 0.9);
       devicesManager = new DevicesManager(emptyPath, timeout, storageDirName);
-      devicesManager.on(EVENTS.ERROR, (e) => {
+      devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
         clearTimeout(stopTimeout);
         expect(e).to.be.an(Error);
         expect(e.message).to.contain('Fail to find any devices');
@@ -118,7 +117,7 @@ describe('devicesManager', () => {
         done('"error" event hasn\'t been thrown');
       }, timeout * 0.9);
       devicesManager = new DevicesManager(nonExistingPath, timeout, storageDirName);
-      devicesManager.on(EVENTS.ERROR, (e) => {
+      devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
         clearTimeout(stopTimeout);
         expect(e).to.be.an(Error);
         expect(e.message).to.contain('Cannot read devices directory');
@@ -137,9 +136,9 @@ describe('devicesManager', () => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
 
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
-      //devicesManager.on(EVENTS.WARN, message => console.log(`WARN: ${message}`));
-      //devicesManager.on(EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
-      devicesManager.on(EVENTS.READY, () => done());
+      //devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
+      //devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
+      devicesManager.on(DevicesManager.EVENTS.READY, () => done());
     });
 
     afterEach(() => {
@@ -178,7 +177,7 @@ describe('devicesManager', () => {
       });
 
       it('Should return null if no devices exist', (done) => {
-        devicesManager.on(EVENTS.ERROR, () => {
+        devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
           //skip;
         });
         exec(`rm -rf ./${testFsDir}/*`);

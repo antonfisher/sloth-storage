@@ -4,9 +4,8 @@ const async = require('async');
 const expect = require('expect.js');
 
 const {exec} = require('./utils');
-const EVENTS = require('../src/appEvents');
-const {MergedFs, _createError, _createNotExistError} = require('../src/mergedFs');
-const {DevicesManager} = require('../src/devicesManager');
+const MergedFs = require('../src/mergedFs');
+const DevicesManager = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
@@ -33,9 +32,9 @@ describe('mergedFs', () => {
   beforeEach((done) => {
     createTestFs();
     devicesManager = new DevicesManager(testFsPath, 1000, storageDirName);
-    devicesManager.on(EVENTS.WARN, message => console.log(`WARN: ${message}`));
-    devicesManager.on(EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
-    devicesManager.on(EVENTS.READY, () => {
+    devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
+    devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
+    devicesManager.on(DevicesManager.EVENTS.READY, () => {
       mergedFs = new MergedFs(devicesManager);
       done();
     });
@@ -628,21 +627,5 @@ describe('mergedFs', () => {
     });
 
     xit('Should use "getDeviceForWrite"');
-  });
-});
-
-describe('mergeFs - Errors', () => {
-  it('#_createError() should return default error with code ENOENT', () => {
-    const err = _createError('lol', 'LOLCODE');
-    expect(err).to.be.an(Error);
-    expect(err).to.have.property('code', 'LOLCODE');
-    expect(err.toString()).to.contain('lol');
-  });
-
-  it('#_createNotExistError() should return default error with code ENOENT', () => {
-    const err = _createNotExistError('lol');
-    expect(err).to.be.an(Error);
-    expect(err).to.have.property('code', 'ENOENT');
-    expect(err.toString()).to.contain('lol');
   });
 });

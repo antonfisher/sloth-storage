@@ -2,19 +2,7 @@ const fs = require('fs');
 const {join, dirname, basename} = require('path');
 const async = require('async');
 
-const EEXIST = 'EEXIST';
-const ENOENT = 'ENOENT';
-const EISFILE = 'EISFILE';
-
-function _createError(message, code = ENOENT) {
-  const err = new Error(message);
-  err.code = code;
-  return err;
-}
-
-function _createNotExistError(message) {
-  return _createError(`${message}: file/directory not exist`);
-}
+const {CODES, createError, createNotExistError} = require('./errorHelpers');
 
 class MergedFs {
   constructor(devicesManager) {
@@ -31,7 +19,7 @@ class MergedFs {
     const relativePath = path.replace(this.devicesManager.getDevicesPath(), '');
 
     if (relativePath === path) {
-      throw _createNotExistError(`Cannot resolve path "${path}", it is out of device directories`);
+      throw createNotExistError(`Cannot resolve path "${path}", it is out of device directories`);
     }
 
     return (relativePath || '/');
@@ -54,7 +42,7 @@ class MergedFs {
       ),
       (err, dev) => {
         if (!err && typeof dev === 'undefined') {
-          return callback(_createNotExistError(`Failed to resolve path "${relativePath}"`));
+          return callback(createNotExistError(`Failed to resolve path "${relativePath}"`));
         }
         callback(err, join(dev, relativePath));
       }
@@ -66,7 +54,7 @@ class MergedFs {
     try {
       relativePath = this._getRelativePath(path);
     } catch (e) {
-      throw _createNotExistError(`Empty relative path parsed from: ${path}`);
+      throw createNotExistError(`Empty relative path parsed from: ${path}`);
     }
 
     // TODO implement random access to devices
@@ -84,7 +72,7 @@ class MergedFs {
     }, null);
 
     if (!resolvedPath) {
-      throw _createNotExistError(`Failed to resolve path "${relativePath}"`);
+      throw createNotExistError(`Failed to resolve path "${relativePath}"`);
     }
 
     return resolvedPath;
@@ -95,7 +83,7 @@ class MergedFs {
     try {
       resolvedPath = this._resolvePathSync(path);
     } catch (e) {
-      throw _createNotExistError(`Cannot create read stream for "${path}": ${e}`);
+      throw createNotExistError(`Cannot create read stream for "${path}": ${e}`);
     }
 
     return fs.createReadStream(resolvedPath, options);
@@ -108,15 +96,15 @@ class MergedFs {
     try {
       resolvedDir = this._resolvePathSync(dirname(path));
     } catch (e) {
-      throw _createNotExistError(`Cannot create read stream for "${resolvedDir}": ${e}`);
+      throw createNotExistError(`Cannot create read stream for "${resolvedDir}": ${e}`);
     }
 
     const stat = fs.statSync(resolvedDir);
 
     if (!stat.isDirectory()) {
-      throw _createError(
+      throw createError(
         `Failed to resolve path "${resolvedDir}": path contains a file in the middle`,
-        EISFILE
+        CODES.EISFILE
       );
     }
 
@@ -167,7 +155,7 @@ class MergedFs {
     const mkdirRecursive = (p, done, initialP) => {
       initialP = (initialP || p);
       fs.mkdir(p, (err) => {
-        if (err && err.code === ENOENT) {
+        if (err && err.code === CODES.ENOENT) {
           mkdirRecursive(dirname(p), done, initialP);
         } else if (p !== initialP) {
           mkdirRecursive(initialP, done, initialP); //ugly
@@ -199,7 +187,7 @@ class MergedFs {
       (item, done) => fs.readdir(
         item,
         (err, res) => {
-          if (err && err.code === ENOENT) {
+          if (err && err.code === CODES.ENOENT) {
             return done(null, []);
           }
           isExist = true;
@@ -208,7 +196,7 @@ class MergedFs {
       ),
       (err, contents) => {
         if (!isExist) {
-          return callback(_createNotExistError(`Cannot read directory: "${relativePath}"`));
+          return callback(createNotExistError(`Cannot read directory: "${relativePath}"`));
         }
         return callback(err, [...new Set(contents)]);
       }
@@ -230,7 +218,7 @@ class MergedFs {
       (item, done) => fs.rmdir(
         item,
         (err) => {
-          if (err && err.code === ENOENT) {
+          if (err && err.code === CODES.ENOENT) {
             return done(null);
           }
           isExist = true;
@@ -239,7 +227,7 @@ class MergedFs {
       ),
       (err) => {
         if (!isExist) {
-          return callback(_createNotExistError(`Cannot read directory: "${relativePath}"`));
+          return callback(createNotExistError(`Cannot read directory: "${relativePath}"`));
         }
         return callback(err);
       }
@@ -280,7 +268,7 @@ class MergedFs {
       (item, done) => fs.unlink(
         item,
         (err) => {
-          if (err && err.code === ENOENT) {
+          if (err && err.code === CODES.ENOENT) {
             return done(null);
           }
           isExist = true;
@@ -289,7 +277,7 @@ class MergedFs {
       ),
       (err) => {
         if (!isExist) {
-          return callback(_createNotExistError(`Cannot remove file: "${relativePath}"`));
+          return callback(createNotExistError(`Cannot remove file: "${relativePath}"`));
         }
         return callback(err);
       }
@@ -309,7 +297,7 @@ class MergedFs {
         return callback(errStat);
       } else if (!stat.isDirectory()) {
         return callback(
-          _createError(`Failed to resolve path "${dirPath}": path contains a file in the middle`, EISFILE)
+          createError(`Failed to resolve path "${dirPath}": path contains a file in the middle`, CODES.EISFILE)
         );
       }
 
@@ -319,7 +307,7 @@ class MergedFs {
         }
 
         this.mkdir(dirPath, (errMkdir) => { // make dir if it isn't exist on the selected device
-          if (errMkdir && errMkdir.code !== EEXIST) {
+          if (errMkdir && errMkdir.code !== CODES.EEXIST) {
             return callback(errMkdir);
           }
 
@@ -337,8 +325,4 @@ class MergedFs {
   }
 }
 
-module.exports = {
-  MergedFs,
-  _createError,
-  _createNotExistError
-};
+module.exports = MergedFs;

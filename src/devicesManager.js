@@ -4,7 +4,6 @@ const EventEmitter = require('events');
 const async = require('async');
 
 const mathUtils = require('./mathUtils');
-const EVENTS = require('./appEvents');
 
 const DEFAULT_STORAGE_DIR_NAME = '.slug-storage';
 const DEFAULT_LOOK_FOR_INTERVAL = 5 * 1000;
@@ -75,7 +74,7 @@ class DevicesManager extends EventEmitter {
             (dir, mkdirDone) => fs.mkdir(dir, (mkdirErr) => {
               if (mkdirErr) {
                 this.emit(
-                  EVENTS.WARN,
+                  DevicesManager.EVENTS.WARN,
                   `Fail to create storage directory on "${dir}" device, skip it in list: ${mkdirErr}`
                 );
               } else {
@@ -94,7 +93,7 @@ class DevicesManager extends EventEmitter {
 
       if (err) {
         this.devices = [];
-        return this.emit(EVENTS.ERROR, new Error(`Fail to process storage directories: ${err}`));
+        return this.emit(DevicesManager.EVENTS.ERROR, new Error(`Fail to process storage directories: ${err}`));
       }
 
       const removedStorageDirs = this.devices.filter(dev => !devices.includes(dev));
@@ -103,11 +102,11 @@ class DevicesManager extends EventEmitter {
 
       if (this.devices.length > 0 && this.isInitLookup) {
         this.isInitLookup = false;
-        this.emit(EVENTS.READY, this.devices);
+        this.emit(DevicesManager.EVENTS.READY, this.devices);
       }
 
-      removedStorageDirs.forEach(dir => this.emit(EVENTS.DEVICE_REMOVED, dir));
-      addedStorageDirs.forEach(dir => this.emit(EVENTS.DEVICE_ADDED, dir));
+      removedStorageDirs.forEach(dir => this.emit(DevicesManager.EVENTS.DEVICE_REMOVED, dir));
+      addedStorageDirs.forEach(dir => this.emit(DevicesManager.EVENTS.DEVICE_ADDED, dir));
     });
   }
 
@@ -134,7 +133,12 @@ class DevicesManager extends EventEmitter {
   }
 }
 
-module.exports = {
-  DevicesManager,
-  EVENTS
+DevicesManager.EVENTS = {
+  WARN: 'warn',
+  ERROR: 'error',
+  READY: 'ready',
+  DEVICE_ADDED: 'device_added',
+  DEVICE_REMOVED: 'device_removed'
 };
+
+module.exports = DevicesManager;
