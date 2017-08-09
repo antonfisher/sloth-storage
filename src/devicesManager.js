@@ -43,7 +43,7 @@ class DevicesManager extends EventEmitter {
     this.devicesPath = devicesPath;
     this.storageDirName = storageDirName;
 
-    this.devices = null;
+    this.devices = [];
     this.isInitLookup = true;
 
     this._lookupDevices();
@@ -74,7 +74,7 @@ class DevicesManager extends EventEmitter {
         }
       ),
       (existingStorageDirs, nonExistingStorageDirs, done) => {
-        const newStorageDirs = [];
+        const addedStorageDirs = [];
         if (nonExistingStorageDirs.length > 0) {
           async.each(
             nonExistingStorageDirs,
@@ -85,34 +85,35 @@ class DevicesManager extends EventEmitter {
                   `Fail to create storage directory on "${dir}" device, skip it in list: ${mkdirErr}`
                 );
               } else {
-                newStorageDirs.push(dir);
+                addedStorageDirs.push(dir);
               }
               return mkdirDone(null);
             }),
-            err => done(err, existingStorageDirs.concat(newStorageDirs), newStorageDirs)
+            err => done(err, existingStorageDirs.concat(addedStorageDirs), addedStorageDirs)
           );
         } else {
-          return done(null, existingStorageDirs, newStorageDirs);
+          return done(null, existingStorageDirs, addedStorageDirs);
         }
       }
-    ], (err, devices, newStorageDirs) => {
-      //console.log('Looked up devices:', err, devices, newStorageDirs);
+    ], (err, devices, addedStorageDirs) => {
+      //console.log('Looked up devices:', err, devices, addedStorageDirs);
 
       if (err) {
-        this.devices = null;
+        this.devices = [];
         return this.emit(EVENTS.ERROR, new Error(`Fail to process storage directories: ${err}`));
       }
 
-      const isInitLookup = (!this.devices && this.isInitLookup);
+      const removedStorageDirs = this.devices.filter(dev => !devices.includes(dev));
 
       this.devices = devices;
 
-      if (this.devices && this.devices.length > 0 && isInitLookup) {
+      if (this.devices.length > 0 && this.isInitLookup) {
         this.isInitLookup = false;
         this.emit(EVENTS.READY, this.devices);
       }
 
-      newStorageDirs.forEach(dir => this.emit(EVENTS.NEW_DEVICE, dir));
+      removedStorageDirs.forEach(dir => this.emit(EVENTS.DEVICE_REMOVED, dir));
+      addedStorageDirs.forEach(dir => this.emit(EVENTS.DEVICE_ADDED, dir));
     });
   }
 
@@ -127,7 +128,7 @@ class DevicesManager extends EventEmitter {
   getDeviceForWrite(callback) {
     // use capacity analisys
     process.nextTick(() => {
-      if (this.devices && this.devices.length > 0) {
+      if (this.devices.length > 0) {
         return callback(null, this.devices[_getRandomIntInclusive(0, this.devices.length - 1)]);
       }
       return callback(null, null); // throw an error?

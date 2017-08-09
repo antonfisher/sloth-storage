@@ -38,14 +38,14 @@ describe('devicesManager', () => {
       exec(`rm -rf ./${testFsDir}`);
     });
 
-    it('Should emit "newDevice" event', (done) => {
+    it('Should emit "deviceAdded" event', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
       devicesManager.on(EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
 
-        devicesManager.on(EVENTS.NEW_DEVICE, (path) => {
+        devicesManager.on(EVENTS.DEVICE_ADDED, (path) => {
           expect(path).to.be(join(testFsPath, 'dev3', storageDirName));
           expect(devicesManager.getDevices()).to.be.an('array');
           expect(devicesManager.getDevices()).to.have.length(3);
@@ -53,6 +53,24 @@ describe('devicesManager', () => {
         });
 
         exec(`mkdir -p ./${testFsDir}/dev3`);
+      });
+    });
+
+    it('Should emit "deviceRemoved" event', (done) => {
+      const timeout = 100;
+      devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+      devicesManager.on(EVENTS.READY, () => {
+        expect(devicesManager.getDevices()).to.be.an('array');
+        expect(devicesManager.getDevices()).to.have.length(2);
+
+        devicesManager.on(EVENTS.DEVICE_REMOVED, (path) => {
+          expect(path).to.be(join(testFsPath, 'dev1', storageDirName));
+          expect(devicesManager.getDevices()).to.be.an('array');
+          expect(devicesManager.getDevices()).to.have.length(1);
+          done();
+        });
+
+        exec(`rm -r ./${testFsDir}/dev1`);
       });
     });
 
