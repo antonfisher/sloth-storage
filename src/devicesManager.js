@@ -3,17 +3,11 @@ const {join} = require('path');
 const EventEmitter = require('events');
 const async = require('async');
 
+const mathUtils = require('./mathUtils');
 const EVENTS = require('./appEvents');
 
 const DEFAULT_STORAGE_DIR_NAME = '.slug-storage';
 const DEFAULT_LOOK_FOR_INTERVAL = 5 * 1000;
-
-// the maximum is inclusive and the minimum is inclusive
-function _getRandomIntInclusive(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * ((max - min) + 1)) + min;
-}
 
 function _asyncFilterDirs(paths, done) {
   return fs.stat(
@@ -129,7 +123,7 @@ class DevicesManager extends EventEmitter {
     // use capacity analisys
     process.nextTick(() => {
       if (this.devices.length > 0) {
-        return callback(null, this.devices[_getRandomIntInclusive(0, this.devices.length - 1)]);
+        return callback(null, this.devices[mathUtils.getRandomIntInclusive(0, this.devices.length - 1)]);
       }
       return callback(null, null); // throw an error?
     });
@@ -142,6 +136,5 @@ class DevicesManager extends EventEmitter {
 
 module.exports = {
   DevicesManager,
-  EVENTS,
-  _getRandomIntInclusive
+  EVENTS
 };
