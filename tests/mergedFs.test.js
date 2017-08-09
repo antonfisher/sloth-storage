@@ -70,8 +70,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.key('code');
-          expect(err.code).to.be('ENOENT');
+          expect(err).to.have.property('code', 'ENOENT');
         });
     });
 
@@ -93,8 +92,7 @@ describe('mergedFs', () => {
     it('should return an ENOENT error if path is not exist', (done) => {
       mergedFs._resolvePath(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(err).to.be.a(Error);
-        expect(err).to.have.key('code');
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         expect(res).to.be(undefined);
         done();
       });
@@ -103,8 +101,7 @@ describe('mergedFs', () => {
     it('should throw an ENOENT error if path is undefined', (done) => {
       mergedFs._resolvePath(null, (err, res) => {
         expect(err).to.be.a(Error);
-        expect(err).to.have.key('code');
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         expect(res).to.be(undefined);
         done();
       });
@@ -124,16 +121,14 @@ describe('mergedFs', () => {
         .to
         .throwException((e) => {
           expect(e).to.be.a(Error);
-          expect(e).to.have.key('code');
-          expect(e.code).to.be('ENOENT');
+          expect(e).to.have.property('code', 'ENOENT');
         });
     });
 
     it('should throw an ENOENT error if path is undefined', () => {
       expect(mergedFs._resolvePathSync).to.throwException((e) => {
         expect(e).to.be.a(Error);
-        expect(e).to.have.key('code');
-        expect(e.code).to.be('ENOENT');
+        expect(e).to.have.property('code', 'ENOENT');
       });
     });
   });
@@ -203,7 +198,7 @@ describe('mergedFs', () => {
     it('Should return ENOENT for out of scope path', (done) => {
       mergedFs.mkdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -235,7 +230,7 @@ describe('mergedFs', () => {
     it('Should return ENOENT error for non-existing directory', (done) => {
       mergedFs.readdir(join(testFsPath, 'dir-not-exist'), (err, res) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         expect(res).to.be(undefined);
         done();
       });
@@ -244,7 +239,7 @@ describe('mergedFs', () => {
     it('Should return ENOENT for out of scope path', (done) => {
       mergedFs.readdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -261,7 +256,7 @@ describe('mergedFs', () => {
     it('Should return error for non-existing directory', (done) => {
       mergedFs.rmdir(join(testFsPath, 'dir-not-exist'), (err) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -269,7 +264,7 @@ describe('mergedFs', () => {
     it('Should return ENOENT for out of scope path', (done) => {
       mergedFs.rmdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -306,8 +301,7 @@ describe('mergedFs', () => {
       mergedFs.stat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
-        expect(err).to.have.key('code');
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -334,8 +328,7 @@ describe('mergedFs', () => {
       mergedFs.lstat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
-        expect(err).to.have.key('code');
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -363,8 +356,7 @@ describe('mergedFs', () => {
       mergedFs.readFile(join(testFsPath, 'file-not-exist.txt'), (err, data) => {
         expect(data).to.be(undefined);
         expect(err).to.be.a(Error);
-        expect(err).to.have.key('code');
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -372,7 +364,7 @@ describe('mergedFs', () => {
     it('Should return ENOENT for out of scope path', (done) => {
       mergedFs.readFile('/path-out-of-scope', (err, data) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         expect(data).to.be(undefined);
         done();
       });
@@ -386,7 +378,7 @@ describe('mergedFs', () => {
         expect(errUnlink).to.be(null);
         mergedFs.readFile(filePath, (errRead) => {
           expect(errRead).to.be.a(Error);
-          expect(errRead.code).to.be('ENOENT');
+          expect(errRead).to.have.property('code', 'ENOENT');
           done();
         });
       });
@@ -396,7 +388,7 @@ describe('mergedFs', () => {
       const filePath = join(testFsPath, 'file-not-exist.txt');
       mergedFs.unlink(filePath, (err, res) => {
         expect(err).to.be.a(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         expect(res).to.be(undefined);
         done();
       });
@@ -405,7 +397,7 @@ describe('mergedFs', () => {
     it('Should return ENOENT for out of scope path', (done) => {
       mergedFs.unlink('/path-out-of-scope', (err, res) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         expect(res).to.be(undefined);
         done();
       });
@@ -464,7 +456,7 @@ describe('mergedFs', () => {
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('EISFILE');
+        expect(err).to.have.property('code', 'EISFILE');
         done();
       });
     });
@@ -474,7 +466,7 @@ describe('mergedFs', () => {
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -482,7 +474,7 @@ describe('mergedFs', () => {
     it('Should return ENOENT for out of scope path', (done) => {
       mergedFs.writeFile('/path-out-of-scope', '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
-        expect(err.code).to.be('ENOENT');
+        expect(err).to.have.property('code', 'ENOENT');
         done();
       });
     });
@@ -524,8 +516,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.key('code');
-          expect(err.code).to.be('ENOENT');
+          expect(err).to.have.property('code', 'ENOENT');
           done();
         });
     });
@@ -536,8 +527,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.key('code');
-          expect(err.code).to.be('ENOENT');
+          expect(err).to.have.property('code', 'ENOENT');
           done();
         });
     });
@@ -610,8 +600,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.key('code');
-          expect(err.code).to.be('EISFILE');
+          expect(err).to.have.property('code', 'EISFILE');
           done();
         });
     });
@@ -622,8 +611,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.key('code');
-          expect(err.code).to.be('ENOENT');
+          expect(err).to.have.property('code', 'ENOENT');
           done();
         });
     });
@@ -634,8 +622,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.key('code');
-          expect(err.code).to.be('ENOENT');
+          expect(err).to.have.property('code', 'ENOENT');
           done();
         });
     });
@@ -648,16 +635,14 @@ describe('mergeFs - Errors', () => {
   it('#_createError() should return default error with code ENOENT', () => {
     const err = _createError('lol', 'LOLCODE');
     expect(err).to.be.an(Error);
-    expect(err).to.have.key('code');
-    expect(err.code).to.be('LOLCODE');
+    expect(err).to.have.property('code', 'LOLCODE');
     expect(err.toString()).to.contain('lol');
   });
 
   it('#_createNotExistError() should return default error with code ENOENT', () => {
     const err = _createNotExistError('lol');
     expect(err).to.be.an(Error);
-    expect(err).to.have.key('code');
-    expect(err.code).to.be('ENOENT');
+    expect(err).to.have.property('code', 'ENOENT');
     expect(err.toString()).to.contain('lol');
   });
 });
