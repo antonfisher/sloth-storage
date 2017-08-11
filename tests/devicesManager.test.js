@@ -10,7 +10,7 @@ const storageDirName = '.slug-storage';
 
 describe('devicesManager', () => {
   describe('Constructor', () => {
-    it('Should throw an error if "devicePath" is undefined', (done) => {
+    it('should throw an error if "devicePath" is undefined', (done) => {
       try {
         const devicesManager = new DevicesManager();
         done(`No error was thrown: "${devicesManager.getDevicesPath()}"`);
@@ -37,7 +37,7 @@ describe('devicesManager', () => {
       exec(`rm -rf ./${testFsDir}`);
     });
 
-    it('Should emit "deviceAdded" event', (done) => {
+    it('should emit "deviceAdded" event', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
@@ -55,7 +55,7 @@ describe('devicesManager', () => {
       });
     });
 
-    it('Should emit "deviceRemoved" event', (done) => {
+    it('should emit "deviceRemoved" event', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
@@ -73,7 +73,7 @@ describe('devicesManager', () => {
       });
     });
 
-    it('Should find new device', (done) => {
+    it('should find new device', (done) => {
       const timeout = 100;
       devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
@@ -93,7 +93,7 @@ describe('devicesManager', () => {
       });
     });
 
-    it('Should emit "error" event if there are no directories in devices path', (done) => {
+    it('should emit "error" event if there are no directories in devices path', (done) => {
       exec(`mkdir -p ./${testFsDir}/empty`);
       const timeout = 1000;
       const emptyPath = join(testFsPath, 'empty');
@@ -110,7 +110,7 @@ describe('devicesManager', () => {
       });
     });
 
-    it('Should emit "error" event for non-existing devices path', (done) => {
+    it('should emit "error" event for non-existing devices path', (done) => {
       const timeout = 100;
       const nonExistingPath = '/not-exist';
       const stopTimeout = setTimeout(() => {
@@ -148,7 +148,7 @@ describe('devicesManager', () => {
     });
 
     describe('#getDevicesPath()', () => {
-      it('Should return devices path', () => {
+      it('should return devices path', () => {
         const devicesPath = devicesManager.getDevicesPath();
         expect(devicesPath).to.be.a('string');
         expect(devicesPath).to.be(testFsPath);
@@ -156,7 +156,7 @@ describe('devicesManager', () => {
     });
 
     describe('#getDevices()', () => {
-      it('Should return devices list', () => {
+      it('should return devices list', () => {
         const devices = devicesManager.getDevices();
         expect(devices).to.be.an('array');
         expect(devices).to.have.length(2);
@@ -166,7 +166,7 @@ describe('devicesManager', () => {
     });
 
     describe('#getDeviceForWrite()', () => {
-      it('Should return device from list', (done) => {
+      it('should return device from list', (done) => {
         const devices = devicesManager.getDevices();
 
         devicesManager.getDeviceForWrite((err, device) => {
@@ -176,7 +176,7 @@ describe('devicesManager', () => {
         });
       });
 
-      it('Should return null if no devices exist', (done) => {
+      it('should return null if no devices exist', (done) => {
         devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
           //skip;
         });
@@ -193,7 +193,7 @@ describe('devicesManager', () => {
     });
 
     describe('#getDeviceForWriteSync()', () => {
-      it('Should return device from list', (done) => {
+      it('should return device from list', (done) => {
         const devices = devicesManager.getDevices();
         try {
           expect(devices).to.be.an('array');
@@ -204,7 +204,7 @@ describe('devicesManager', () => {
         }
       });
 
-      it('Should return null if no devices exist', (done) => {
+      it('should return null if no devices exist', (done) => {
         devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
           //skip;
         });

@@ -133,7 +133,7 @@ describe('mergedFs', () => {
   });
 
   describe('#mkdir()', () => {
-    it('Should create new directory in the storage directory on a device', (done) => {
+    it('should create new directory in the storage directory on a device', (done) => {
       const dir = 'dir-new-1';
       const devices = devicesManager.getDevices();
 
@@ -150,7 +150,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should create directory on each device (1 level)', (done) => {
+    it('should create directory on each device (1 level)', (done) => {
       const dir = 'dir-new-2';
       const devices = devicesManager.getDevices();
 
@@ -172,7 +172,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should create directory on each device (2 level)', (done) => {
+    it('should create directory on each device (2 level)', (done) => {
       const dir = 'dir-new-3';
       const subDir = 'dir1';
       const devices = devicesManager.getDevices();
@@ -194,7 +194,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT for out of scope path', (done) => {
+    it('should return ENOENT for out of scope path', (done) => {
       mergedFs.mkdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', 'ENOENT');
@@ -204,7 +204,7 @@ describe('mergedFs', () => {
   });
 
   describe('#readdir()', () => {
-    it('Should return list of files in directory', (done) => {
+    it('should return list of files in directory', (done) => {
       mergedFs.readdir(testFsPath, (err, res) => {
         expect(res).to.be.an('array');
         expect(res).to.have.length(5);
@@ -217,7 +217,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return list of files in sub-directory', (done) => {
+    it('should return list of files in sub-directory', (done) => {
       mergedFs.readdir(join(testFsPath, 'dir1'), (err, res) => {
         expect(res).to.be.an('array');
         expect(res).to.have.length(1);
@@ -226,7 +226,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT error for non-existing directory', (done) => {
+    it('should return ENOENT error for non-existing directory', (done) => {
       mergedFs.readdir(join(testFsPath, 'dir-not-exist'), (err, res) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', 'ENOENT');
@@ -235,7 +235,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT for out of scope path', (done) => {
+    it('should return ENOENT for out of scope path', (done) => {
       mergedFs.readdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', 'ENOENT');
@@ -245,14 +245,14 @@ describe('mergedFs', () => {
   });
 
   describe('#rmdir()', () => {
-    it('Should remove existing directory', (done) => {
+    it('should remove existing directory', (done) => {
       mergedFs.rmdir(join(testFsPath, 'dir2'), (err) => {
         expect(err).to.be(null);
         done();
       });
     });
 
-    it('Should return error for non-existing directory', (done) => {
+    it('should return error for non-existing directory', (done) => {
       mergedFs.rmdir(join(testFsPath, 'dir-not-exist'), (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', 'ENOENT');
@@ -260,7 +260,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT for out of scope path', (done) => {
+    it('should return ENOENT for out of scope path', (done) => {
       mergedFs.rmdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', 'ENOENT');
@@ -270,7 +270,7 @@ describe('mergedFs', () => {
   });
 
   describe('#exists()', () => { // this method is deprecated in node v8
-    it('Should return TRUE for existing file', (done) => {
+    it('should return TRUE for existing file', (done) => {
       mergedFs.exists(join(testFsPath, 'file1.txt'), (res) => {
         expect(res).to.be.an('boolean');
         expect(res).to.be(true);
@@ -278,7 +278,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return FALSE for not existing file', (done) => {
+    it('should return FALSE for not existing file', (done) => {
       mergedFs.exists(join(testFsPath, 'file-not-exist.txt'), (res) => {
         expect(res).to.be.an('boolean');
         expect(res).to.be(false);
@@ -288,7 +288,7 @@ describe('mergedFs', () => {
   });
 
   describe('#stat()', () => {
-    it('Should return stat for file', (done) => {
+    it('should return stat for file', (done) => {
       mergedFs.stat(join(testFsPath, 'file1.txt'), (err, res) => {
         expect(res).to.be.an('object');
         expect(res).to.have.key('atime');
@@ -296,7 +296,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return error for non-existion file', (done) => {
+    it('should return error for non-existion file', (done) => {
       mergedFs.stat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
@@ -307,7 +307,7 @@ describe('mergedFs', () => {
   });
 
   describe('#statSync()', () => {
-    it('Should return stat for file', (done) => {
+    it('should return stat for file', (done) => {
       try {
         const stat = mergedFs.statSync(join(testFsPath, 'file1.txt'));
         expect(stat).to.be.an('object');
@@ -318,7 +318,7 @@ describe('mergedFs', () => {
       }
     });
 
-    it('Should return error for non-existion file', (done) => {
+    it('should return error for non-existion file', (done) => {
       try {
         mergedFs.statSync(join(testFsPath, 'file-not-exist.txt'));
         done('did not throw an exception');
@@ -331,7 +331,7 @@ describe('mergedFs', () => {
   });
 
   describe('#lstat()', () => {
-    it('Should return lstat for file', (done) => {
+    it('should return lstat for file', (done) => {
       mergedFs.lstat(join(testFsPath, 'file2.txt'), (err, res) => {
         expect(res).to.be.an('object');
         expect(res).to.have.key('atime');
@@ -339,7 +339,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return lstat for link', (done) => {
+    it('should return lstat for link', (done) => {
       mergedFs.lstat(join(testFsPath, 'dir3', 'link-file2.txt'), (err, res) => {
         expect(res).to.be.an('object');
         expect(res).to.have.key('atime');
@@ -347,7 +347,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return error for non-existion file', (done) => {
+    it('should return error for non-existion file', (done) => {
       mergedFs.lstat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
@@ -358,7 +358,7 @@ describe('mergedFs', () => {
   });
 
   describe('#readFile()', () => {
-    it('Should read existing file', (done) => {
+    it('should read existing file', (done) => {
       mergedFs.readFile(join(testFsPath, 'file2.txt'), (err, data) => {
         expect(err).to.be(null);
         expect(data).to.be.a(Buffer);
@@ -367,7 +367,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should support enconding parameter', (done) => {
+    it('should support enconding parameter', (done) => {
       mergedFs.readFile(join(testFsPath, 'file2.txt'), 'utf8', (err, data) => {
         expect(err).to.be(null);
         expect(data).to.be('content\n');
@@ -375,7 +375,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT error for non-existing file', (done) => {
+    it('should return ENOENT error for non-existing file', (done) => {
       mergedFs.readFile(join(testFsPath, 'file-not-exist.txt'), (err, data) => {
         expect(data).to.be(undefined);
         expect(err).to.be.a(Error);
@@ -384,7 +384,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT for out of scope path', (done) => {
+    it('should return ENOENT for out of scope path', (done) => {
       mergedFs.readFile('/path-out-of-scope', (err, data) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', 'ENOENT');
@@ -395,7 +395,7 @@ describe('mergedFs', () => {
   });
 
   describe('#unlink()', () => {
-    it('Should remove existing file', (done) => {
+    it('should remove existing file', (done) => {
       const filePath = join(testFsPath, 'file2.txt');
       mergedFs.unlink(filePath, (errUnlink) => {
         expect(errUnlink).to.be(null);
@@ -407,7 +407,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT error for non-existing file', (done) => {
+    it('should return ENOENT error for non-existing file', (done) => {
       const filePath = join(testFsPath, 'file-not-exist.txt');
       mergedFs.unlink(filePath, (err, res) => {
         expect(err).to.be.a(Error);
@@ -417,7 +417,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT for out of scope path', (done) => {
+    it('should return ENOENT for out of scope path', (done) => {
       mergedFs.unlink('/path-out-of-scope', (err, res) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', 'ENOENT');
@@ -428,7 +428,7 @@ describe('mergedFs', () => {
   });
 
   describe('#writeFile()', () => {
-    it('Should write file to the root', (done) => {
+    it('should write file to the root', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'new-file.txt');
 
@@ -446,7 +446,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should work w/o encoding parameter', (done) => {
+    it('should work w/o encoding parameter', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'new-file.txt');
 
@@ -456,7 +456,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should write file to the directory', (done) => {
+    it('should write file to the directory', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'dir1', 'new-file.txt');
 
@@ -474,7 +474,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return EISFILE if destination is a file, not a directory', (done) => {
+    it('should return EISFILE if destination is a file, not a directory', (done) => {
       const newFilePath = join(testFsPath, 'file1.txt', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
@@ -484,7 +484,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT error for non-existing directory', (done) => {
+    it('should return ENOENT error for non-existing directory', (done) => {
       const newFilePath = join(testFsPath, 'dir-non-existing', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
@@ -494,7 +494,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT error for non-existing sub-directories', (done) => {
+    it('should return ENOENT error for non-existing sub-directories', (done) => {
       const newFilePath = join(testFsPath, 'dir-non-existing', 'dir-non-existing', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
@@ -504,7 +504,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should return ENOENT for out of scope path', (done) => {
+    it('should return ENOENT for out of scope path', (done) => {
       mergedFs.writeFile('/path-out-of-scope', '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', 'ENOENT');
@@ -514,7 +514,7 @@ describe('mergedFs', () => {
   });
 
   describe('#createReadStream()', () => {
-    it('Should read existing file', (done) => {
+    it('should read existing file', (done) => {
       let stream;
 
       try {
@@ -530,7 +530,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('Should support enconding parameter', (done) => {
+    it('should support enconding parameter', (done) => {
       try {
         const stream = mergedFs.createReadStream(join(testFsPath, 'file2.txt'), {encoding: 'utf8'});
         stream.on('data', (data) => {
@@ -543,7 +543,7 @@ describe('mergedFs', () => {
       }
     });
 
-    it('Should return ENOENT error for non-existing file', (done) => {
+    it('should return ENOENT error for non-existing file', (done) => {
       expect(mergedFs.createReadStream.bind(mergedFs))
         .withArgs(join(testFsPath, 'file-not-exist.txt'))
         .to
@@ -554,7 +554,7 @@ describe('mergedFs', () => {
         });
     });
 
-    it('Should return ENOENT error for empty path', (done) => {
+    it('should return ENOENT error for empty path', (done) => {
       expect(mergedFs.createReadStream.bind(mergedFs))
         .withArgs('')
         .to
@@ -567,7 +567,7 @@ describe('mergedFs', () => {
   });
 
   describe('#createWriteStream()', () => {
-    it('Should create write stream to the root', (done) => {
+    it('should create write stream to the root', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'new-file.txt');
 
@@ -587,7 +587,7 @@ describe('mergedFs', () => {
       }
     });
 
-    it('Should work w/o encoding parameter', (done) => {
+    it('should work w/o encoding parameter', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'new-file-1.txt');
 
@@ -607,7 +607,7 @@ describe('mergedFs', () => {
       }
     });
 
-    it('Should create write stream to the directory', (done) => {
+    it('should create write stream to the directory', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'dir2', 'new-file-in-directory.txt');
 
@@ -627,7 +627,7 @@ describe('mergedFs', () => {
       }
     });
 
-    it('Should return EISFILE if destination is a file, not a directory', (done) => {
+    it('should return EISFILE if destination is a file, not a directory', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs(join(testFsPath, 'file2.txt', 'file-not-exist.txt'))
         .to
@@ -638,7 +638,7 @@ describe('mergedFs', () => {
         });
     });
 
-    it('Should return ENOENT error for non-existing directory', (done) => {
+    it('should return ENOENT error for non-existing directory', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs(join(testFsPath, 'dir-not-exist', 'file-not-exist.txt'))
         .to
@@ -649,7 +649,7 @@ describe('mergedFs', () => {
         });
     });
 
-    it('Should return ENOENT error for non-existing sub-directories', (done) => {
+    it('should return ENOENT error for non-existing sub-directories', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs(join(testFsPath, 'dir-not-exist', 'dir-not-exist', 'file-not-exist.txt'))
         .to
@@ -660,7 +660,7 @@ describe('mergedFs', () => {
         });
     });
 
-    it('Should return ENOENT error for empty path', (done) => {
+    it('should return ENOENT error for empty path', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs('')
         .to
