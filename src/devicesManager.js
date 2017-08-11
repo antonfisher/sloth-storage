@@ -118,14 +118,18 @@ class DevicesManager extends EventEmitter {
     return this.devices;
   }
 
+  //TODO use capacity analisys
+  getDeviceForWriteSync() {
+    if (this.devices.length > 0) {
+      return this.devices[mathUtils.getRandomIntInclusive(0, this.devices.length - 1)];
+    }
+
+    return null; //throw an error or not?
+    //throw new Error('No devices to write.');
+  }
+
   getDeviceForWrite(callback) {
-    // use capacity analisys
-    process.nextTick(() => {
-      if (this.devices.length > 0) {
-        return callback(null, this.devices[mathUtils.getRandomIntInclusive(0, this.devices.length - 1)]);
-      }
-      return callback(null, null); // throw an error?
-    });
+    process.nextTick(() => callback(null, this.getDeviceForWriteSync()));
   }
 
   destroy() {

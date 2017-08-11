@@ -189,5 +189,33 @@ describe('devicesManager', () => {
         }, timeout * 1.1);
       });
     });
+
+    describe('#getDeviceForWriteSync()', () => {
+      it('Should return device from list', (done) => {
+        const devices = devicesManager.getDevices();
+        try {
+          expect(devices).to.be.an('array');
+          expect(devices).to.contain(devicesManager.getDeviceForWriteSync());
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+
+      it('Should return null if no devices exist', (done) => {
+        devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
+          //skip;
+        });
+        exec(`rm -rf ./${testFsDir}/*`);
+        setTimeout(() => {
+          try {
+            expect(devicesManager.getDeviceForWriteSync()).to.be(null);
+            done();
+          } catch (e) {
+            done(e);
+          }
+        }, timeout * 1.1);
+      });
+    });
   });
 });
