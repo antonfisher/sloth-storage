@@ -188,6 +188,8 @@ describe('devicesManager', () => {
           });
         }, timeout * 1.1);
       });
+
+      xit('should NOT return just added devices?');
     });
 
     describe('#getDeviceForWriteSync()', () => {
@@ -216,6 +218,8 @@ describe('devicesManager', () => {
           }
         }, timeout * 1.1);
       });
+
+      xit('should NOT return just added devices?');
     });
   });
 });

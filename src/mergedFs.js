@@ -1,5 +1,5 @@
 const fs = require('fs');
-const {join, dirname, basename} = require('path');
+const {join, dirname} = require('path');
 const async = require('async');
 
 const {CODES, createError, createNotExistError} = require('./errorHelpers');
@@ -78,39 +78,6 @@ class MergedFs {
     return resolvedPath;
   }
 
-  createReadStream(path, options) {
-    let resolvedPath;
-    try {
-      resolvedPath = this._resolvePathSync(path);
-    } catch (e) {
-      throw createNotExistError(`Cannot create read stream for "${path}": ${e}`);
-    }
-
-    return fs.createReadStream(resolvedPath, options);
-  }
-
-  createWriteStream(path, options) {
-    const fileName = basename(path);
-
-    let resolvedDir;
-    try {
-      resolvedDir = this._resolvePathSync(dirname(path));
-    } catch (e) {
-      throw createNotExistError(`Cannot create read stream for "${resolvedDir}": ${e}`);
-    }
-
-    const stat = fs.statSync(resolvedDir);
-
-    if (!stat.isDirectory()) {
-      throw createError(
-        `Failed to resolve path "${resolvedDir}": path contains a file in the middle`,
-        CODES.EISFILE
-      );
-    }
-
-    return fs.createWriteStream(join(resolvedDir, fileName), options);
-  }
-
   exists(path, callback) {
     return this._resolvePath(
       path,
@@ -128,6 +95,10 @@ class MergedFs {
         fs.stat(resolvedPath, callback);
       }
     );
+  }
+
+  statSync(path) {
+    return fs.statSync(this._resolvePathSync(path));
   }
 
   lstat(path, callback) {
@@ -290,38 +261,59 @@ class MergedFs {
       options = {};
     }
 
-    const dirPath = dirname(path);
+    let relativePath;
+    try {
+      relativePath = this._getRelativePath(path);
+    } catch (e) {
+      return process.nextTick(() => callback(e));
+    }
 
-    this.stat(dirPath, (errStat, stat) => {
-      if (errStat) { // if not exist on any device
-        return callback(errStat);
-      } else if (!stat.isDirectory()) {
-        return callback(
-          createError(`Failed to resolve path "${dirPath}": path contains a file in the middle`, CODES.EISFILE)
-        );
+    this.devicesManager.getDeviceForWrite((err, device) => {
+      if (err) {
+        return process.nextTick(() => callback(err));
       }
 
-      this.devicesManager.getDeviceForWrite((err, device) => { // select device to write
-        if (err) {
-          return process.nextTick(() => callback(err));
+      const resolvedPath = join(device, relativePath);
+
+      this.stat(dirname(path), (errStat, stat) => {
+        if (errStat) {
+          return callback(errStat);
+        } else if (!stat.isDirectory()) {
+          return callback(
+            createError(`Failed to resolve path "${relativePath}": path contains a file in the middle`, CODES.EISFILE)
+          );
         }
 
-        this.mkdir(dirPath, (errMkdir) => { // make dir if it isn't exist on the selected device
-          if (errMkdir && errMkdir.code !== CODES.EEXIST) {
-            return callback(errMkdir);
-          }
-
-          let relativePath;
-          try {
-            relativePath = this._getRelativePath(path);
-          } catch (e) {
-            return process.nextTick(() => callback(e));
-          }
-
-          fs.writeFile(join(device, relativePath), data, options, callback);
-        });
+        fs.writeFile(resolvedPath, data, options, callback);
       });
     });
+  }
+
+  createReadStream(path, options) {
+    let resolvedPath;
+
+    try {
+      resolvedPath = this._resolvePathSync(path);
+      return fs.createReadStream(resolvedPath, options);
+    } catch (e) {
+      throw createNotExistError(`Failed to create read stream for "${resolvedPath || path}": ${e}`);
+    }
+  }
+
+  createWriteStream(path, options) {
+    const relativePath = this._getRelativePath(path);
+    const resolvedPath = join(this.devicesManager.getDeviceForWriteSync(), relativePath);
+
+    const stat = this.statSync(dirname(path));
+    if (!stat.isDirectory()) {
+      throw createError(`Failed to resolve path "${relativePath}": path contains a file in the middle`, CODES.EISFILE);
+    }
+
+    try {
+      return fs.createWriteStream(resolvedPath, options);
+    } catch (e) {
+      throw new Error(`Failed to create write stream for "${relativePath || path}": ${e}`);
+    }
   }
 }
 

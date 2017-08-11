@@ -16,8 +16,8 @@ let mergedFs;
 
 function createTestFs() {
   exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
-  exec(`mkdir -p ./${testFsDir}/dev1/.slug-storage/dir{1,2}`);
-  exec(`mkdir -p ./${testFsDir}/dev2/.slug-storage/dir{2,3}`);
+  exec(`mkdir -p ./${testFsDir}/dev1/.slug-storage/dir{1,2,3}`);
+  exec(`mkdir -p ./${testFsDir}/dev2/.slug-storage/dir{1,2,3}`);
   exec(`touch ./${testFsDir}/dev1/.slug-storage/file1.txt`);
   exec(`touch ./${testFsDir}/dev1/.slug-storage/dir1/file1-1.txt`);
   exec(`echo 'content' > ./${testFsDir}/dev2/.slug-storage/file2.txt`);
@@ -306,6 +306,30 @@ describe('mergedFs', () => {
     });
   });
 
+  describe('#statSync()', () => {
+    it('Should return stat for file', (done) => {
+      try {
+        const stat = mergedFs.statSync(join(testFsPath, 'file1.txt'));
+        expect(stat).to.be.an('object');
+        expect(stat).to.have.key('atime');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    });
+
+    it('Should return error for non-existion file', (done) => {
+      try {
+        mergedFs.statSync(join(testFsPath, 'file-not-exist.txt'));
+        done('did not throw an exception');
+      } catch (e) {
+        expect(e).to.be.an(Error);
+        expect(e).to.have.property('code', 'ENOENT');
+        done();
+      }
+    });
+  });
+
   describe('#lstat()', () => {
     it('Should return lstat for file', (done) => {
       mergedFs.lstat(join(testFsPath, 'file2.txt'), (err, res) => {
@@ -404,7 +428,7 @@ describe('mergedFs', () => {
   });
 
   describe('#writeFile()', () => {
-    it('Should write file to the root #only', (done) => {
+    it('Should write file to the root', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'new-file.txt');
 
@@ -462,6 +486,16 @@ describe('mergedFs', () => {
 
     it('Should return ENOENT error for non-existing directory', (done) => {
       const newFilePath = join(testFsPath, 'dir-non-existing', 'new-file.txt');
+
+      mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', 'ENOENT');
+        done();
+      });
+    });
+
+    it('Should return ENOENT error for non-existing sub-directories', (done) => {
+      const newFilePath = join(testFsPath, 'dir-non-existing', 'dir-non-existing', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
@@ -575,7 +609,7 @@ describe('mergedFs', () => {
 
     it('Should create write stream to the directory', (done) => {
       const content = 'content';
-      const newFilePath = join(testFsPath, 'dir3', 'new-file-in-directory.txt');
+      const newFilePath = join(testFsPath, 'dir2', 'new-file-in-directory.txt');
 
       try {
         const stream = mergedFs.createWriteStream(newFilePath, {defaultEncoding: 'utf8'});
@@ -615,6 +649,17 @@ describe('mergedFs', () => {
         });
     });
 
+    it('Should return ENOENT error for non-existing sub-directories', (done) => {
+      expect(mergedFs.createWriteStream.bind(mergedFs))
+        .withArgs(join(testFsPath, 'dir-not-exist', 'dir-not-exist', 'file-not-exist.txt'))
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err).to.have.property('code', 'ENOENT');
+          done();
+        });
+    });
+
     it('Should return ENOENT error for empty path', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs('')
@@ -625,7 +670,5 @@ describe('mergedFs', () => {
           done();
         });
     });
-
-    xit('Should use "getDeviceForWrite"');
   });
 });
