@@ -194,6 +194,14 @@ describe('mergedFs', () => {
       });
     });
 
+    it('should return ENOENT if second level directory doesn\'t exist', (done) => {
+      mergedFs.mkdir(join(testFsPath, 'dir-not-exist', 'dir-new-4'), (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', 'ENOENT');
+        done();
+      });
+    });
+
     it('should return ENOENT for out of scope path', (done) => {
       mergedFs.mkdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);

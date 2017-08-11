@@ -123,22 +123,22 @@ class MergedFs {
       return process.nextTick(() => callback(e));
     }
 
-    const mkdirRecursive = (p, done, initialP) => {
-      initialP = (initialP || p);
-      fs.mkdir(p, (err) => {
-        if (err && err.code === CODES.ENOENT) {
-          mkdirRecursive(dirname(p), done, initialP);
-        } else if (p !== initialP) {
-          mkdirRecursive(initialP, done, initialP); //ugly
-        } else {
-          done(err);
-        }
-      });
-    };
+    //const mkdirRecursive = (p, done, initialP) => {
+    //  initialP = (initialP || p);
+    //  fs.mkdir(p, (err) => {
+    //    if (err && err.code === CODES.ENOENT) {
+    //      mkdirRecursive(dirname(p), done, initialP);
+    //    } else if (p !== initialP) {
+    //      mkdirRecursive(initialP, done, initialP); //ugly
+    //    } else {
+    //      done(err);
+    //    }
+    //  });
+    //};
 
     async.each(
       this.devicesManager.getDevices(),
-      (dev, done) => mkdirRecursive(join(dev, relativePath), done),
+      (dev, done) => fs.mkdir(join(dev, relativePath), done),
       callback
     );
   }
@@ -284,6 +284,7 @@ class MergedFs {
           );
         }
 
+        //TODO have to create directory if not exist
         fs.writeFile(resolvedPath, data, options, callback);
       });
     });
@@ -310,6 +311,7 @@ class MergedFs {
     }
 
     try {
+      //TODO have to create directory if not exist
       return fs.createWriteStream(resolvedPath, options);
     } catch (e) {
       throw new Error(`Failed to create write stream for "${relativePath || path}": ${e}`);
