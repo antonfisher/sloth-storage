@@ -176,20 +176,20 @@ describe('devicesManager', () => {
         });
       });
 
-      it('should return null if no devices exist', (done) => {
+      it('should return an error if no devices exist', (done) => {
         devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
           //skip;
         });
         exec(`rm -rf ./${testFsDir}/*`);
+
         setTimeout(() => {
-          devicesManager.getDeviceForWrite((err, device) => {
-            expect(device).to.be(null);
-            done(err);
+          devicesManager.getDeviceForWrite((err) => {
+            expect(err).to.be.a(Error);
+            expect(err.message).to.contain('No devices for write');
+            done();
           });
         }, timeout * 1.1);
       });
-
-      xit('should NOT return just added devices?');
     });
 
     describe('#getDeviceForWriteSync()', () => {
@@ -204,22 +204,22 @@ describe('devicesManager', () => {
         }
       });
 
-      it('should return null if no devices exist', (done) => {
+      it('should throw an error return null if no devices exist', (done) => {
         devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
           //skip;
         });
         exec(`rm -rf ./${testFsDir}/*`);
+
         setTimeout(() => {
-          try {
-            expect(devicesManager.getDeviceForWriteSync()).to.be(null);
-            done();
-          } catch (e) {
-            done(e);
-          }
+          expect(devicesManager.getDeviceForWriteSync.bind(devicesManager))
+            .to
+            .throwException((err) => {
+              expect(err).to.be.a(Error);
+              expect(err.message).to.contain('No devices for write');
+              done();
+            });
         }, timeout * 1.1);
       });
-
-      xit('should NOT return just added devices?');
     });
   });
 });

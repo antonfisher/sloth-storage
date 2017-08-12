@@ -124,12 +124,17 @@ class DevicesManager extends EventEmitter {
       return this.devices[mathUtils.getRandomIntInclusive(0, this.devices.length - 1)];
     }
 
-    return null; //throw an error or not?
-    //throw new Error('No devices to write.');
+    throw new Error('No devices for write');
   }
 
   getDeviceForWrite(callback) {
-    process.nextTick(() => callback(null, this.getDeviceForWriteSync()));
+    process.nextTick(() => {
+      try {
+        return callback(null, this.getDeviceForWriteSync());
+      } catch (e) {
+        return callback(e);
+      }
+    });
   }
 
   destroy() {

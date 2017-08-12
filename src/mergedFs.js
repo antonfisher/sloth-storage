@@ -25,6 +25,7 @@ class MergedFs {
     return (relativePath || '/');
   }
 
+  //TODO return stat
   _resolvePath(path, callback) {
     let relativePath;
     try {
@@ -78,10 +79,42 @@ class MergedFs {
     return resolvedPath;
   }
 
+  _mkdirRecursive(path, mode, callback) {
+    if (!callback) {
+      callback = mode;
+      mode = 0o777;
+    }
+
+    fs.mkdir(path, mode, (err) => {
+      if (err && err.code === CODES.ENOENT) {
+        this._mkdirRecursive(dirname(path), mode, (subErr) => {
+          if (subErr) {
+            return callback(subErr);
+          }
+          this._mkdirRecursive(path, mode, callback);
+        });
+      } else {
+        callback(err);
+      }
+    });
+  }
+
+  _mkdirRecursiveSync(path, mode) {
+    try {
+      return fs.mkdirSync(path, mode);
+    } catch (e) {
+      if (e.code === CODES.ENOENT) {
+        this._mkdirRecursiveSync(dirname(path), mode);
+        return this._mkdirRecursiveSync(path, mode);
+      }
+      throw e;
+    }
+  }
+
   exists(path, callback) {
     return this._resolvePath(
       path,
-      (err, resolvedPath) => process.nextTick(() => callback(Boolean(resolvedPath)))
+      (err, resolvedPath) => callback(Boolean(resolvedPath))
     );
   }
 
@@ -90,7 +123,7 @@ class MergedFs {
       path,
       (err, resolvedPath) => {
         if (err) {
-          return process.nextTick(() => callback(err));
+          return callback(err);
         }
         fs.stat(resolvedPath, callback);
       }
@@ -106,15 +139,18 @@ class MergedFs {
       path,
       (err, resolvedPath) => {
         if (err) {
-          return process.nextTick(() => callback(err));
+          return callback(err);
         }
         fs.lstat(resolvedPath, callback);
       }
     );
   }
 
-  mkdir(path, ...callbacks) {
-    const callback = callbacks.slice(-1)[0];
+  mkdir(path, mode, callback) {
+    if (!callback) {
+      callback = mode;
+      mode = 0o777;
+    }
 
     let relativePath;
     try {
@@ -123,24 +159,30 @@ class MergedFs {
       return process.nextTick(() => callback(e));
     }
 
-    //const mkdirRecursive = (p, done, initialP) => {
-    //  initialP = (initialP || p);
-    //  fs.mkdir(p, (err) => {
-    //    if (err && err.code === CODES.ENOENT) {
-    //      mkdirRecursive(dirname(p), done, initialP);
-    //    } else if (p !== initialP) {
-    //      mkdirRecursive(initialP, done, initialP); //ugly
-    //    } else {
-    //      done(err);
-    //    }
-    //  });
-    //};
+    this._resolvePath(path, (err, resolvedPath) => {
+      if (!err) {
+        return callback(createError(`Directory already exist: ${resolvedPath}`, CODES.EEXIST));
+      }
 
-    async.each(
-      this.devicesManager.getDevices(),
-      (dev, done) => fs.mkdir(join(dev, relativePath), done),
-      callback
-    );
+      this._resolvePath(dirname(path), (parentErr) => {
+        if (parentErr) {
+          return callback(parentErr);
+        }
+
+        this.devicesManager.getDeviceForWrite((devErr, device) => {
+          if (devErr) {
+            return callback(devErr);
+          }
+
+          this._mkdirRecursive(join(device, relativePath), mode, (mkdirErr) => {
+            if (mkdirErr) {
+              return callback(mkdirErr);
+            }
+            return callback();
+          });
+        });
+      });
+    });
   }
 
   readdir(path, callback) {
@@ -268,24 +310,35 @@ class MergedFs {
       return process.nextTick(() => callback(e));
     }
 
-    this.devicesManager.getDeviceForWrite((err, device) => {
-      if (err) {
-        return process.nextTick(() => callback(err));
+    this.devicesManager.getDeviceForWrite((deviceErr, device) => {
+      if (deviceErr) {
+        return callback(deviceErr);
       }
 
       const resolvedPath = join(device, relativePath);
-
-      this.stat(dirname(path), (errStat, stat) => {
-        if (errStat) {
-          return callback(errStat);
-        } else if (!stat.isDirectory()) {
-          return callback(
-            createError(`Failed to resolve path "${relativePath}": path contains a file in the middle`, CODES.EISFILE)
-          );
+      this.stat(path, (err) => {
+        if (!err) {
+          return callback(createError(`File already exist: ${relativePath}`, CODES.EEXIST));
         }
 
-        //TODO have to create directory if not exist
-        fs.writeFile(resolvedPath, data, options, callback);
+        this.stat(dirname(path), (dirErr, dirStat) => {
+          if (dirErr) {
+            return callback(dirErr);
+          } else if (!dirStat.isDirectory()) {
+            return callback(
+              createError(`Failed to resolve path "${relativePath}": path contains a file in the middle`, CODES.EISFILE)
+            );
+          }
+
+
+          this._mkdirRecursive(dirname(resolvedPath), (mkdirErr) => {
+            if (mkdirErr && mkdirErr.code !== CODES.EEXIST) { // probably this device already contain this directory
+              return callback(mkdirErr);
+            }
+
+            return fs.writeFile(resolvedPath, data, options, callback);
+          });
+        });
       });
     });
   }
@@ -303,19 +356,34 @@ class MergedFs {
 
   createWriteStream(path, options) {
     const relativePath = this._getRelativePath(path);
-    const resolvedPath = join(this.devicesManager.getDeviceForWriteSync(), relativePath);
+    const device = this.devicesManager.getDeviceForWriteSync();
+    const resolvedPath = join(device, relativePath);
 
-    const stat = this.statSync(dirname(path));
-    if (!stat.isDirectory()) {
+    let stat;
+    try {
+      stat = this.statSync(path);
+    } catch (e) {
+      // file doesn't exist
+    }
+
+    if (stat) {
+      throw createError(`File already exist: ${relativePath}`, CODES.EEXIST);
+    }
+
+    const dirStat = this.statSync(dirname(path));
+    if (!dirStat.isDirectory()) {
       throw createError(`Failed to resolve path "${relativePath}": path contains a file in the middle`, CODES.EISFILE);
     }
 
     try {
-      //TODO have to create directory if not exist
-      return fs.createWriteStream(resolvedPath, options);
+      this._mkdirRecursiveSync(dirname(resolvedPath));
     } catch (e) {
-      throw new Error(`Failed to create write stream for "${relativePath || path}": ${e}`);
+      if (e.code !== CODES.EEXIST) { // probably this device already contain this directory
+        throw e;
+      }
     }
+
+    return fs.createWriteStream(resolvedPath, options);
   }
 }
 

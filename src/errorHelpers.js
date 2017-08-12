@@ -11,7 +11,7 @@ function createError(message, code = CODES.ENOENT) {
 }
 
 function createNotExistError(message) {
-  return createError(`${message}: file/directory not exist`);
+  return createError(`${message}: file/directory not exist`); //TODO code???
 }
 
 module.exports = {

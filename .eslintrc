@@ -6,6 +6,7 @@
     "mocha": true
   },
   "rules": {
+    "no-bitwise": 0,
     "no-console": 0,
     "no-plusplus": 0,
     "spaced-comment": 0,

@@ -6,6 +6,7 @@ const expect = require('expect.js');
 const {exec} = require('./utils');
 const MergedFs = require('../src/mergedFs');
 const DevicesManager = require('../src/devicesManager');
+const {CODES} = require('../src/errorHelpers');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
@@ -16,8 +17,8 @@ let mergedFs;
 
 function createTestFs() {
   exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
-  exec(`mkdir -p ./${testFsDir}/dev1/.slug-storage/dir{1,2,3}`);
-  exec(`mkdir -p ./${testFsDir}/dev2/.slug-storage/dir{1,2,3}`);
+  exec(`mkdir -p ./${testFsDir}/dev1/.slug-storage/dir{1,2}`);
+  exec(`mkdir -p ./${testFsDir}/dev2/.slug-storage/dir{2,3}`);
   exec(`touch ./${testFsDir}/dev1/.slug-storage/file1.txt`);
   exec(`touch ./${testFsDir}/dev1/.slug-storage/dir1/file1-1.txt`);
   exec(`echo 'content' > ./${testFsDir}/dev2/.slug-storage/file2.txt`);
@@ -29,11 +30,13 @@ function removeTestFs() {
 }
 
 describe('mergedFs', () => {
+  const timeout = 100;
+
   beforeEach((done) => {
     createTestFs();
-    devicesManager = new DevicesManager(testFsPath, 1000, storageDirName);
-    devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
-    devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
+    devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+    //devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
+    //devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
     devicesManager.on(DevicesManager.EVENTS.READY, () => {
       mergedFs = new MergedFs(devicesManager);
       done();
@@ -69,7 +72,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.property('code', 'ENOENT');
+          expect(err).to.have.property('code', CODES.ENOENT);
         });
     });
 
@@ -91,7 +94,7 @@ describe('mergedFs', () => {
     it('should return an ENOENT error if path is not exist', (done) => {
       mergedFs._resolvePath(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(err).to.be.a(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         expect(res).to.be(undefined);
         done();
       });
@@ -100,7 +103,7 @@ describe('mergedFs', () => {
     it('should throw an ENOENT error if path is undefined', (done) => {
       mergedFs._resolvePath(null, (err, res) => {
         expect(err).to.be.a(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         expect(res).to.be(undefined);
         done();
       });
@@ -120,20 +123,82 @@ describe('mergedFs', () => {
         .to
         .throwException((e) => {
           expect(e).to.be.a(Error);
-          expect(e).to.have.property('code', 'ENOENT');
+          expect(e).to.have.property('code', CODES.ENOENT);
         });
     });
 
     it('should throw an ENOENT error if path is undefined', () => {
       expect(mergedFs._resolvePathSync).to.throwException((e) => {
         expect(e).to.be.a(Error);
-        expect(e).to.have.property('code', 'ENOENT');
+        expect(e).to.have.property('code', CODES.ENOENT);
+      });
+    });
+  });
+
+  describe('#_mkdirRecursive()', () => {
+    const defaultMode = (0o777 & (~process.umask())).toString(8);
+
+    it('should create 1-level directory', (done) => {
+      const path = join(testFsPath, 'dev1', '.slug-storage', 'a');
+      mergedFs._mkdirRecursive(path, (err) => {
+        expect(err).to.not.be.ok();
+        try {
+          const stat = fs.statSync(path);
+          expect(stat.isDirectory()).to.be(true);
+          expect(stat.mode.toString(8)).to.contain(defaultMode);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('should create 2-level directory', (done) => {
+      const path = join(testFsPath, 'dev1', '.slug-storage', 'b', 'bb');
+
+      mergedFs._mkdirRecursive(path, (err) => {
+        expect(err).to.not.be.ok();
+        try {
+          const stat = fs.statSync(path);
+          expect(stat.isDirectory()).to.be(true);
+          expect(stat.mode.toString(8)).to.contain(defaultMode);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('should create 3-level directory with mode', (done) => {
+      const path = join(testFsPath, 'dev1', '.slug-storage', 'c', 'cc', 'ccc');
+      const mode = 0o775;
+
+      mergedFs._mkdirRecursive(path, mode, (err) => {
+        expect(err).to.not.be.ok();
+        try {
+          const stat = fs.statSync(path);
+          expect(stat.isDirectory()).to.be(true);
+          expect(stat.mode.toString(8)).to.contain((mode & (~process.umask())).toString(8));
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('should return EEXIST error for an existing path', (done) => {
+      const path = join(testFsPath, 'dev1');
+
+      mergedFs._mkdirRecursive(path, (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', CODES.EEXIST);
+        done();
       });
     });
   });
 
   describe('#mkdir()', () => {
-    it('should create new directory in the storage directory on a device', (done) => {
+    it('should create new directory in the storage directory on any device', (done) => {
       const dir = 'dir-new-1';
       const devices = devicesManager.getDevices();
 
@@ -142,62 +207,46 @@ describe('mergedFs', () => {
           return done(errMkdir);
         }
 
-        fs.readdir(devices[0], (errReaddir, files) => {
-          expect(files).to.contain(dir);
-          expect(devices[0]).to.contain(storageDirName);
-          done(errReaddir);
-        });
-      });
-    });
-
-    it('should create directory on each device (1 level)', (done) => {
-      const dir = 'dir-new-2';
-      const devices = devicesManager.getDevices();
-
-      mergedFs.mkdir(join(testFsPath, dir), (errMkdir) => {
-        if (errMkdir) {
-          return done(errMkdir);
-        }
-
-        async.concat(
+        async.detect(
           devices,
-          (dev, devDone) => fs.readdir(dev, devDone),
-          (errReaddir, res) => {
-            expect(res).to.be.an('array');
-            res = res.filter(i => (i === dir));
-            expect(res).to.have.length(devices.length);
-            done(errReaddir);
+          (dev, callback) => fs.stat(join(dev, dir), (err, stat) => callback(null, !err && stat.isDirectory())),
+          (err, result) => {
+            if (err) {
+              return done(err);
+            }
+            return done(result ? null : `New directory was not found on any device: ${dir}`);
           }
         );
       });
     });
 
-    it('should create directory on each device (2 level)', (done) => {
-      const dir = 'dir-new-3';
+    it('should create new directory in the storage directory on any device (2-level)', (done) => {
+      const dir = 'dir-new-2';
       const subDir = 'dir1';
       const devices = devicesManager.getDevices();
+
       mergedFs.mkdir(join(testFsPath, subDir, dir), (errMkdir) => {
         if (errMkdir) {
           return done(errMkdir);
         }
 
-        async.concat(
+        async.detect(
           devices,
-          (dev, devDone) => fs.readdir(join(dev, subDir), devDone),
-          (errReaddir, res) => {
-            expect(res).to.be.an('array');
-            res = res.filter(i => (i === dir));
-            expect(res).to.have.length(devices.length);
-            done(errReaddir);
+          (dev, callback) => fs.stat(join(dev, subDir, dir), (err, stat) => callback(null, !err && stat.isDirectory())),
+          (err, result) => {
+            if (err) {
+              return done(err);
+            }
+            return done(result ? null : `New directory was not found on any device: ${join(subDir, dir)}`);
           }
         );
       });
     });
 
-    it('should return ENOENT if second level directory doesn\'t exist', (done) => {
+    it('should return ENOENT if parent of second level directory doesn\'t exist', (done) => {
       mergedFs.mkdir(join(testFsPath, 'dir-not-exist', 'dir-new-4'), (err) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -205,7 +254,7 @@ describe('mergedFs', () => {
     it('should return ENOENT for out of scope path', (done) => {
       mergedFs.mkdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -237,7 +286,7 @@ describe('mergedFs', () => {
     it('should return ENOENT error for non-existing directory', (done) => {
       mergedFs.readdir(join(testFsPath, 'dir-not-exist'), (err, res) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         expect(res).to.be(undefined);
         done();
       });
@@ -246,7 +295,7 @@ describe('mergedFs', () => {
     it('should return ENOENT for out of scope path', (done) => {
       mergedFs.readdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -263,7 +312,7 @@ describe('mergedFs', () => {
     it('should return error for non-existing directory', (done) => {
       mergedFs.rmdir(join(testFsPath, 'dir-not-exist'), (err) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -271,7 +320,7 @@ describe('mergedFs', () => {
     it('should return ENOENT for out of scope path', (done) => {
       mergedFs.rmdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -308,7 +357,7 @@ describe('mergedFs', () => {
       mergedFs.stat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -332,7 +381,7 @@ describe('mergedFs', () => {
         done('did not throw an exception');
       } catch (e) {
         expect(e).to.be.an(Error);
-        expect(e).to.have.property('code', 'ENOENT');
+        expect(e).to.have.property('code', CODES.ENOENT);
         done();
       }
     });
@@ -359,7 +408,7 @@ describe('mergedFs', () => {
       mergedFs.lstat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -387,7 +436,7 @@ describe('mergedFs', () => {
       mergedFs.readFile(join(testFsPath, 'file-not-exist.txt'), (err, data) => {
         expect(data).to.be(undefined);
         expect(err).to.be.a(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -395,7 +444,7 @@ describe('mergedFs', () => {
     it('should return ENOENT for out of scope path', (done) => {
       mergedFs.readFile('/path-out-of-scope', (err, data) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         expect(data).to.be(undefined);
         done();
       });
@@ -409,7 +458,7 @@ describe('mergedFs', () => {
         expect(errUnlink).to.be(null);
         mergedFs.readFile(filePath, (errRead) => {
           expect(errRead).to.be.a(Error);
-          expect(errRead).to.have.property('code', 'ENOENT');
+          expect(errRead).to.have.property('code', CODES.ENOENT);
           done();
         });
       });
@@ -419,7 +468,7 @@ describe('mergedFs', () => {
       const filePath = join(testFsPath, 'file-not-exist.txt');
       mergedFs.unlink(filePath, (err, res) => {
         expect(err).to.be.a(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         expect(res).to.be(undefined);
         done();
       });
@@ -428,7 +477,7 @@ describe('mergedFs', () => {
     it('should return ENOENT for out of scope path', (done) => {
       mergedFs.unlink('/path-out-of-scope', (err, res) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         expect(res).to.be(undefined);
         done();
       });
@@ -497,7 +546,7 @@ describe('mergedFs', () => {
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -507,7 +556,7 @@ describe('mergedFs', () => {
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
     });
@@ -515,9 +564,32 @@ describe('mergedFs', () => {
     it('should return ENOENT for out of scope path', (done) => {
       mergedFs.writeFile('/path-out-of-scope', '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', 'ENOENT');
+        expect(err).to.have.property('code', CODES.ENOENT);
         done();
       });
+    });
+
+    it('should return EEXIST error if file alredy exist', (done) => {
+      mergedFs.writeFile(join(testFsPath, 'file1.txt'), '', 'utf8', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', CODES.EEXIST);
+        done();
+      });
+    });
+
+    it('should return an error if there are no devices', (done) => {
+      devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
+        //skip;
+      });
+      exec(`rm -rf ./${testFsDir}/*`);
+
+      setTimeout(() => {
+        mergedFs.writeFile(join(testFsPath, 'new-file-2.txt'), '', 'utf8', (err) => {
+          expect(err).to.be.a(Error);
+          expect(err.message).to.contain('No devices for write');
+          done();
+        });
+      }, timeout * 1.1);
     });
   });
 
@@ -557,7 +629,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.property('code', 'ENOENT');
+          expect(err).to.have.property('code', CODES.ENOENT);
           done();
         });
     });
@@ -568,7 +640,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.property('code', 'ENOENT');
+          expect(err).to.have.property('code', CODES.ENOENT);
           done();
         });
     });
@@ -615,7 +687,7 @@ describe('mergedFs', () => {
       }
     });
 
-    it('should create write stream to the directory', (done) => {
+    it('should create write stream to the file in sub-directory', (done) => {
       const content = 'content';
       const newFilePath = join(testFsPath, 'dir2', 'new-file-in-directory.txt');
 
@@ -635,7 +707,7 @@ describe('mergedFs', () => {
       }
     });
 
-    it('should return EISFILE if destination is a file, not a directory', (done) => {
+    it('should return EISFILE if destination contains a file in the path', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs(join(testFsPath, 'file2.txt', 'file-not-exist.txt'))
         .to
@@ -652,7 +724,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.property('code', 'ENOENT');
+          expect(err).to.have.property('code', CODES.ENOENT);
           done();
         });
     });
@@ -663,7 +735,7 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.property('code', 'ENOENT');
+          expect(err).to.have.property('code', CODES.ENOENT);
           done();
         });
     });
@@ -674,9 +746,38 @@ describe('mergedFs', () => {
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
-          expect(err).to.have.property('code', 'ENOENT');
+          expect(err).to.have.property('code', CODES.ENOENT);
           done();
         });
+    });
+
+    it('should return EEXITS error if file already exist', (done) => {
+      expect(mergedFs.createWriteStream.bind(mergedFs))
+        .withArgs(join(testFsPath, 'file1.txt'))
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err).to.have.property('code', CODES.EEXIST);
+          done();
+        });
+    });
+
+    it('should throw an error if no devices exist', (done) => {
+      devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
+        //skip;
+      });
+      exec(`rm -rf ./${testFsDir}/*`);
+
+      setTimeout(() => {
+        expect(mergedFs.createWriteStream.bind(mergedFs))
+          .withArgs(join(testFsPath, 'new-file-2.txt'))
+          .to
+          .throwException((err) => {
+            expect(err).to.be.a(Error);
+            expect(err.message).to.contain('No devices for write');
+            done();
+          });
+      }, timeout * 1.1);
     });
   });
 });
