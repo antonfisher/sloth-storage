@@ -30,7 +30,7 @@ The idea is to build drive distributed storage system with FTP interface on Node
 ... or 10Gb storage (2 copies of each file).
 
 
-## Modules HierarchyNode.js 
+## Modules Hierarchy 
 ```
             +--------+
       +-----+ daemon +------+
