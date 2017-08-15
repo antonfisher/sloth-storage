@@ -1,5 +1,6 @@
 const {join} = require('path');
 const expect = require('expect.js');
+const simple = require('simple-mock');
 
 const {exec} = require('./utils');
 const DevicesManager = require('../src/devicesManager');
@@ -38,8 +39,8 @@ describe('devicesManager', () => {
     });
 
     it('should emit "deviceAdded" event', (done) => {
-      const timeout = 100;
-      devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+      const lookupInterval = 100;
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
@@ -56,8 +57,8 @@ describe('devicesManager', () => {
     });
 
     it('should emit "deviceRemoved" event', (done) => {
-      const timeout = 100;
-      devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+      const lookupInterval = 100;
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
@@ -74,8 +75,8 @@ describe('devicesManager', () => {
     });
 
     it('should find new device', (done) => {
-      const timeout = 100;
-      devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+      const lookupInterval = 100;
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
@@ -89,20 +90,40 @@ describe('devicesManager', () => {
           expect(devicesManager.getDevices()).to.have.length(3);
           expect(devicesManager.getDevices()).to.contain(join(testFsPath, 'dev3', storageDirName));
           done();
-        }, timeout * 1.1);
+        }, lookupInterval * 1.1);
+      });
+    });
+
+    it('should emit "warning" event if failed to create storage directory on a devices', (done) => {
+      const mockFs = require('fs'); //eslint-disable-line global-require
+      const lookupInterval = 1000;
+      simple.mock(mockFs, 'mkdir').callbackWith('lol-warn');
+      exec(`rm -rf ./${testFsDir}/dev1/${storageDirName}`);
+      const stoplookupInterval = setTimeout(() => {
+        simple.restore();
+        done('"warning" event hasn\'t been thrown');
+      }, lookupInterval * 0.9);
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName, fs: mockFs});
+      devicesManager.on(DevicesManager.EVENTS.WARN, (err) => {
+        clearTimeout(stoplookupInterval);
+        expect(err).to.contain('Fail to create storage directory');
+        expect(err).to.contain(`${testFsDir}/dev1`);
+        expect(err).to.contain('lol-warn');
+        simple.restore();
+        done();
       });
     });
 
     it('should emit "error" event if there are no directories in devices path', (done) => {
       exec(`mkdir -p ./${testFsDir}/empty`);
-      const timeout = 1000;
+      const lookupInterval = 1000;
       const emptyPath = join(testFsPath, 'empty');
-      const stopTimeout = setTimeout(() => {
+      const stoplookupInterval = setTimeout(() => {
         done('"error" event hasn\'t been thrown');
-      }, timeout * 0.9);
-      devicesManager = new DevicesManager(emptyPath, timeout, storageDirName);
+      }, lookupInterval * 0.9);
+      devicesManager = new DevicesManager({devicesPath: emptyPath, lookupInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
-        clearTimeout(stopTimeout);
+        clearTimeout(stoplookupInterval);
         expect(e).to.be.an(Error);
         expect(e.message).to.contain('Fail to find any devices');
         expect(e.message).to.contain(emptyPath);
@@ -111,14 +132,14 @@ describe('devicesManager', () => {
     });
 
     it('should emit "error" event for non-existing devices path', (done) => {
-      const timeout = 100;
+      const lookupInterval = 100;
       const nonExistingPath = '/not-exist';
-      const stopTimeout = setTimeout(() => {
+      const stoplookupInterval = setTimeout(() => {
         done('"error" event hasn\'t been thrown');
-      }, timeout * 0.9);
-      devicesManager = new DevicesManager(nonExistingPath, timeout, storageDirName);
+      }, lookupInterval * 0.9);
+      devicesManager = new DevicesManager({devicesPath: nonExistingPath, lookupInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
-        clearTimeout(stopTimeout);
+        clearTimeout(stoplookupInterval);
         expect(e).to.be.an(Error);
         expect(e.message).to.contain('Cannot read devices directory');
         expect(e.message).to.contain('ENOENT');
@@ -130,12 +151,12 @@ describe('devicesManager', () => {
 
   describe('Runtime methods', () => {
     let devicesManager;
-    const timeout = 100;
+    const lookupInterval = 100;
 
     beforeEach((done) => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
 
-      devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
       //devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
       //devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
       devicesManager.on(DevicesManager.EVENTS.READY, () => done());
@@ -188,7 +209,7 @@ describe('devicesManager', () => {
             expect(err.message).to.contain('No devices for write');
             done();
           });
-        }, timeout * 1.1);
+        }, lookupInterval * 1.1);
       });
     });
 
@@ -218,7 +239,7 @@ describe('devicesManager', () => {
               expect(err.message).to.contain('No devices for write');
               done();
             });
-        }, timeout * 1.1);
+        }, lookupInterval * 1.1);
       });
     });
   });

@@ -13,7 +13,7 @@ const workDir = process.argv[2];
 const workPath = join(process.cwd(), workDir);
 console.log(`Used devices path: ${workPath}`);
 
-const devicesManager = new DevicesManager(workPath);
+const devicesManager = new DevicesManager({devicesPath: workPath});
 const mergedFs = new MergedFs(devicesManager);
 
 const server = new FtpServer(options.host, {

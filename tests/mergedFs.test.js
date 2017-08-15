@@ -30,11 +30,11 @@ function removeTestFs() {
 }
 
 describe('mergedFs', () => {
-  const timeout = 100;
+  const lookupInterval = 100;
 
   beforeEach((done) => {
     createTestFs();
-    devicesManager = new DevicesManager(testFsPath, timeout, storageDirName);
+    devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
     //devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
     //devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
     devicesManager.on(DevicesManager.EVENTS.READY, () => {
@@ -589,7 +589,7 @@ describe('mergedFs', () => {
           expect(err.message).to.contain('No devices for write');
           done();
         });
-      }, timeout * 1.1);
+      }, lookupInterval * 1.1);
     });
   });
 
@@ -777,7 +777,7 @@ describe('mergedFs', () => {
             expect(err.message).to.contain('No devices for write');
             done();
           });
-      }, timeout * 1.1);
+      }, lookupInterval * 1.1);
     });
   });
 });

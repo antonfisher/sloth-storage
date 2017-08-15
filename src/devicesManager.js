@@ -1,4 +1,4 @@
-const fs = require('fs');
+const defaultNodeFs = require('fs');
 const {join} = require('path');
 const EventEmitter = require('events');
 const async = require('async');
@@ -8,22 +8,13 @@ const mathUtils = require('./mathUtils');
 const DEFAULT_STORAGE_DIR_NAME = '.slug-storage';
 const DEFAULT_LOOK_FOR_INTERVAL = 5 * 1000;
 
-function _asyncFilterDirs(paths, done) {
-  return fs.stat(
-    paths,
-    (err, stat) => done(null, !err && stat.isDirectory())
-  );
-}
-
-function _asyncFilterNonExisting(paths, done) {
-  return fs.stat(
-    paths,
-    err => done(null, err && err.code === 'ENOENT')
-  );
-}
-
 class DevicesManager extends EventEmitter {
-  constructor(devicesPath, lookupUnterval = DEFAULT_LOOK_FOR_INTERVAL, storageDirName = DEFAULT_STORAGE_DIR_NAME) {
+  constructor({
+    devicesPath,
+    lookupInterval = DEFAULT_LOOK_FOR_INTERVAL,
+    storageDirName = DEFAULT_STORAGE_DIR_NAME,
+    fs = defaultNodeFs
+  } = {}) {
     super();
 
     if (!devicesPath) {
@@ -35,24 +26,41 @@ class DevicesManager extends EventEmitter {
 
     this.devicesPath = devicesPath;
     this.storageDirName = storageDirName;
+    this.fs = fs;
 
     this.devices = [];
     this.isInitLookup = true;
 
     this._lookupDevices();
-    this._lookupDevicesInterval = setInterval(() => this._lookupDevices(), lookupUnterval);
+    this._lookupDevicesInterval = setInterval(() => this._lookupDevices(), lookupInterval);
+    this._asyncFilterDirs = this._asyncFilterDirs.bind(this);
+    this._asyncFilterNonExisting = this._asyncFilterNonExisting.bind(this);
+  }
+
+  _asyncFilterDirs(paths, done) {
+    return this.fs.stat(
+      paths,
+      (err, stat) => done(null, !err && stat.isDirectory())
+    );
+  }
+
+  _asyncFilterNonExisting(paths, done) {
+    return this.fs.stat(
+      paths,
+      err => done(null, err && err.code === 'ENOENT')
+    );
   }
 
   _lookupDevices() {
     //console.log('Look up devices start...');
     async.waterfall([
-      done => fs.readdir(this.devicesPath, (err, files) => {
+      done => this.fs.readdir(this.devicesPath, (err, files) => {
         if (err) {
           return done(new Error(`Cannot read devices directory "${this.devicesPath}": ${err}`));
         }
         return done(null, files.map(fileName => join(this.devicesPath, fileName)));
       }),
-      (filePaths, done) => async.filter(filePaths, _asyncFilterDirs, (err, dirs) => {
+      (filePaths, done) => async.filter(filePaths, this._asyncFilterDirs, (err, dirs) => {
         if (!dirs.length) {
           return done(new Error(`Fail to find any devices in "${this.devicesPath}"`));
         }
@@ -60,7 +68,7 @@ class DevicesManager extends EventEmitter {
       }),
       (storageDirs, done) => async.filter(
         storageDirs,
-        _asyncFilterNonExisting,
+        this._asyncFilterNonExisting,
         (err, nonExistingStorageDirs) => {
           const existingStorageDirs = storageDirs.filter(dir => !nonExistingStorageDirs.includes(dir));
           return done(null, existingStorageDirs, nonExistingStorageDirs);
@@ -71,7 +79,7 @@ class DevicesManager extends EventEmitter {
         if (nonExistingStorageDirs.length > 0) {
           async.each(
             nonExistingStorageDirs,
-            (dir, mkdirDone) => fs.mkdir(dir, (mkdirErr) => {
+            (dir, mkdirDone) => this.fs.mkdir(dir, (mkdirErr) => {
               if (mkdirErr) {
                 this.emit(
                   DevicesManager.EVENTS.WARN,
