@@ -339,6 +339,34 @@ describe('mergedFs', () => {
       });
     });
 
+    it('should create new directory with specified mode in the storage directory on any device', (done) => {
+      const mode = 0o775;
+      const dir = 'dir-new-3';
+      const devices = devicesManager.getDevices();
+
+      mergedFs.mkdir(join(testFsPath, dir), mode, (errMkdir) => {
+        if (errMkdir) {
+          return done(errMkdir);
+        }
+
+        async.detect(
+          devices,
+          (dev, callback) => fs.stat(join(dev, dir), (err, stat) => callback(null, !err && stat.isDirectory())),
+          (err, result) => {
+            if (err) {
+              return done(err);
+            } else if (result) {
+              const stat = fs.statSync(join(result, dir));
+              expect(stat.mode.toString(8)).to.contain((mode & (~process.umask())).toString(8));
+              return done();
+            }
+
+            return done(`New directory was not found on any device: ${dir}`);
+          }
+        );
+      });
+    });
+
     it('should return ENOENT if parent of second level directory doesn\'t exist', (done) => {
       mergedFs.mkdir(join(testFsPath, 'dir-not-exist', 'dir-new-4'), (err) => {
         expect(err).to.be.an(Error);
