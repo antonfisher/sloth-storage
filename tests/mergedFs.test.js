@@ -347,10 +347,42 @@ describe('mergedFs', () => {
       });
     });
 
+    it('should return an error if there is no device for write', (done) => {
+      const internalError = new Error();
+      internalError.code = 'lol-error';
+      simple.mock(devicesManager, 'getDeviceForWrite').callbackWith(internalError);
+      mergedFs.mkdir(join(testFsPath, 'dir-new'), (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', internalError.code);
+        simple.restore();
+        done();
+      });
+    });
+
+    it('should return an error if error happened during creating recursive repository', (done) => {
+      const internalError = new Error();
+      internalError.code = 'lol-error';
+      simple.mock(mergedFs, '_mkdirRecursive').callbackWith(internalError);
+      mergedFs.mkdir(join(testFsPath, 'dir-new'), (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', internalError.code);
+        simple.restore();
+        done();
+      });
+    });
+
     it('should return ENOENT for out of scope path', (done) => {
       mergedFs.mkdir('/path-out-of-scope', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
+        done();
+      });
+    });
+
+    it('should return EEXIST if directory already exist', (done) => {
+      mergedFs.mkdir(join(testFsPath, 'dir1'), (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', CODES.EEXIST);
         done();
       });
     });
@@ -674,18 +706,28 @@ describe('mergedFs', () => {
     });
 
     it('should return an error if there are no devices', (done) => {
-      devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
-        //skip;
-      });
-      exec(`rm -rf ./${testFsDir}/*`);
+      const internalError = new Error();
+      internalError.code = 'lol-error';
+      simple.mock(devicesManager, 'getDeviceForWrite').callbackWith(internalError);
 
-      setTimeout(() => {
-        mergedFs.writeFile(join(testFsPath, 'new-file-2.txt'), '', 'utf8', (err) => {
-          expect(err).to.be.a(Error);
-          expect(err.message).to.contain('No devices for write');
-          done();
-        });
-      }, lookupInterval * 1.1);
+      mergedFs.writeFile(join(testFsPath, 'new-file-2.txt'), '', 'utf8', (err) => {
+        expect(err).to.be.a(Error);
+        expect(err.code).to.be(internalError.code);
+        done();
+      });
+    });
+
+    it('should return an error if error happened during creating recursive repository', (done) => {
+      const internalError = new Error();
+      internalError.code = 'lol-error';
+      simple.mock(mergedFs, '_mkdirRecursive').callbackWith(internalError);
+
+      mergedFs.writeFile(join(testFsPath, 'new-file-2.txt'), '', 'utf8', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', internalError.code);
+        simple.restore();
+        done();
+      });
     });
   });
 
@@ -858,22 +900,32 @@ describe('mergedFs', () => {
         });
     });
 
-    it('should throw an error if no devices exist', (done) => {
-      devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
-        //skip;
-      });
-      exec(`rm -rf ./${testFsDir}/*`);
+    it('should throw an error if no devices for write', () => {
+      const internalError = new Error();
+      internalError.code = 'lol-error';
+      simple.mock(devicesManager, 'getDeviceForWriteSync').throwWith(internalError);
 
-      setTimeout(() => {
-        expect(mergedFs.createWriteStream.bind(mergedFs))
-          .withArgs(join(testFsPath, 'new-file-2.txt'))
-          .to
-          .throwException((err) => {
-            expect(err).to.be.a(Error);
-            expect(err.message).to.contain('No devices for write');
-            done();
-          });
-      }, lookupInterval * 1.1);
+      expect(mergedFs.createWriteStream.bind(mergedFs))
+        .withArgs(join(testFsPath, 'new-file-2.txt'))
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err.code).to.be(internalError.code);
+        });
+    });
+
+    it('should throw an error if faild to create recursive directories on device', () => {
+      const internalError = new Error();
+      internalError.code = 'lol-error';
+      simple.mock(mergedFs, '_mkdirRecursiveSync').throwWith(internalError);
+
+      expect(mergedFs.createWriteStream.bind(mergedFs))
+        .withArgs(join(testFsPath, 'new-file-3.txt'))
+        .to
+        .throwException((err) => {
+          expect(err).to.be.a(Error);
+          expect(err.code).to.be(internalError.code);
+        });
     });
   });
 });
