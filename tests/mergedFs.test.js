@@ -2,6 +2,7 @@ const fs = require('fs');
 const {join} = require('path');
 const async = require('async');
 const expect = require('expect.js');
+const simple = require('simple-mock');
 
 const {exec} = require('./utils');
 const MergedFs = require('../src/mergedFs');
@@ -11,6 +12,7 @@ const {CODES} = require('../src/errorHelpers');
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
 const storageDirName = '.slug-storage';
+const defaultMode = (0o777 & (~process.umask())).toString(8);
 
 let devicesManager;
 let mergedFs;
@@ -38,7 +40,7 @@ describe('mergedFs', () => {
     //devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
     //devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
     devicesManager.on(DevicesManager.EVENTS.READY, () => {
-      mergedFs = new MergedFs(devicesManager);
+      mergedFs = new MergedFs({devicesManager});
       done();
     });
   });
@@ -136,8 +138,6 @@ describe('mergedFs', () => {
   });
 
   describe('#_mkdirRecursive()', () => {
-    const defaultMode = (0o777 & (~process.umask())).toString(8);
-
     it('should create 1-level directory', (done) => {
       const path = join(testFsPath, 'dev1', '.slug-storage', 'a');
       mergedFs._mkdirRecursive(path, (err) => {
@@ -194,6 +194,102 @@ describe('mergedFs', () => {
         expect(err).to.have.property('code', CODES.EEXIST);
         done();
       });
+    });
+
+    it('should return error if failed to create new directory', (done) => {
+      const path = join(testFsPath, 'dev1', '.slug-storage', 'd', 'dd', 'ddd');
+
+      const enoentError = new Error();
+      enoentError.code = 'ENOENT';
+
+      const internalError = new Error();
+      internalError.code = 'lol-code';
+
+      const mockFs = require('fs'); //eslint-disable-line global-require
+      simple.mock(mockFs, 'mkdir')
+        .callbackWith(enoentError)
+        .callbackWith(internalError);
+
+      const localMergedFs = new MergedFs({devicesManager, fs: mockFs});
+      localMergedFs._mkdirRecursive(path, (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', internalError.code);
+        simple.restore();
+        done();
+      });
+    });
+  });
+
+  describe('#_mkdirRecursiveSync()', () => {
+    it('should create 1-level directory', () => {
+      const path = join(testFsPath, 'dev1', '.slug-storage', 'a');
+
+      mergedFs._mkdirRecursiveSync(path);
+
+      const stat = fs.statSync(path);
+      expect(stat.isDirectory()).to.be(true);
+      expect(stat.mode.toString(8)).to.contain(defaultMode);
+    });
+
+    it('should create 2-level directory', () => {
+      const path = join(testFsPath, 'dev1', '.slug-storage', 'b', 'bb');
+
+      mergedFs._mkdirRecursiveSync(path);
+
+      const stat = fs.statSync(path);
+      expect(stat.isDirectory()).to.be(true);
+      expect(stat.mode.toString(8)).to.contain(defaultMode);
+    });
+
+    it('should create 3-level directory with mode', () => {
+      const path = join(testFsPath, 'dev1', '.slug-storage', 'c', 'cc', 'ccc');
+      const mode = 0o775;
+
+      mergedFs._mkdirRecursiveSync(path, mode);
+
+      const stat = fs.statSync(path);
+      expect(stat.isDirectory()).to.be(true);
+      expect(stat.mode.toString(8)).to.contain((mode & (~process.umask())).toString(8));
+    });
+
+    it('should throw EEXIST error for an existing path', (done) => {
+      const path = join(testFsPath, 'dev1');
+
+      try {
+        mergedFs._mkdirRecursiveSync(path);
+        done('Exception was not thrown');
+      } catch (e) {
+        expect(e).to.be.an(Error);
+        expect(e).to.have.property('code', CODES.EEXIST);
+        done();
+      }
+    });
+
+    it('should throw error if failed to create new directory', (done) => {
+      const path = join(testFsPath, 'dev1', '.slug-storage', 'd', 'dd', 'ddd');
+
+      const enoentError = new Error();
+      enoentError.code = 'ENOENT';
+
+      const internalError = new Error();
+      internalError.code = 'lol-code';
+
+      const mockFs = require('fs'); //eslint-disable-line global-require
+      simple.mock(mockFs, 'mkdirSync')
+        .throwWith(enoentError)
+        .throwWith(internalError);
+
+      const localMergedFs = new MergedFs({devicesManager, fs: mockFs});
+      try {
+        localMergedFs._mkdirRecursiveSync(path);
+        simple.restore();
+        done('Exception was not thrown');
+      } catch (e) {
+        expect(e).to.be.an(Error);
+        expect(e).to.have.property('code', internalError.code);
+        simple.restore();
+        done();
+      }
     });
   });
 

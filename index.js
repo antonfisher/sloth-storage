@@ -14,7 +14,7 @@ const workPath = join(process.cwd(), workDir);
 console.log(`Used devices path: ${workPath}`);
 
 const devicesManager = new DevicesManager({devicesPath: workPath});
-const mergedFs = new MergedFs(devicesManager);
+const mergedFs = new MergedFs({devicesManager});
 
 const server = new FtpServer(options.host, {
   pasvPortRangeStart: 1025,

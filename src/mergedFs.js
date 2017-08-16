@@ -1,16 +1,17 @@
-const fs = require('fs');
+const defaultNodeFs = require('fs');
 const {join, dirname} = require('path');
 const async = require('async');
 
 const {CODES, createError, createNotExistError} = require('./errorHelpers');
 
 class MergedFs {
-  constructor(devicesManager) {
+  constructor({devicesManager, fs = defaultNodeFs} = {}) {
     if (!devicesManager) {
       throw new Error('No "devicesManager" parameter');
     }
 
     this.devicesManager = devicesManager;
+    this.fs = fs;
   }
 
   _getRelativePath(path) {
@@ -37,7 +38,7 @@ class MergedFs {
     // TODO implement random access to devices
     async.detect(
       this.devicesManager.getDevices(),
-      (dev, done) => fs.access(
+      (dev, done) => this.fs.access(
         join(dev, relativePath),
         (err => done(null, !err))
       ),
@@ -65,7 +66,7 @@ class MergedFs {
       }
       const devPath = join(dev, relativePath);
       try {
-        fs.accessSync(devPath);
+        this.fs.accessSync(devPath);
         return devPath;
       } catch (e) {
         return null;
@@ -85,23 +86,23 @@ class MergedFs {
       mode = 0o777;
     }
 
-    fs.mkdir(path, mode, (err) => {
+    this.fs.mkdir(path, mode, (err) => {
       if (err && err.code === CODES.ENOENT) {
-        this._mkdirRecursive(dirname(path), mode, (subErr) => {
+        return this._mkdirRecursive(dirname(path), mode, (subErr) => {
           if (subErr) {
             return callback(subErr);
           }
           this._mkdirRecursive(path, mode, callback);
         });
-      } else {
-        callback(err);
       }
+
+      return callback(err);
     });
   }
 
   _mkdirRecursiveSync(path, mode) {
     try {
-      return fs.mkdirSync(path, mode);
+      return this.fs.mkdirSync(path, mode);
     } catch (e) {
       if (e.code === CODES.ENOENT) {
         this._mkdirRecursiveSync(dirname(path), mode);
@@ -125,13 +126,13 @@ class MergedFs {
         if (err) {
           return callback(err);
         }
-        fs.stat(resolvedPath, callback);
+        this.fs.stat(resolvedPath, callback);
       }
     );
   }
 
   statSync(path) {
-    return fs.statSync(this._resolvePathSync(path));
+    return this.fs.statSync(this._resolvePathSync(path));
   }
 
   lstat(path, callback) {
@@ -141,7 +142,7 @@ class MergedFs {
         if (err) {
           return callback(err);
         }
-        fs.lstat(resolvedPath, callback);
+        this.fs.lstat(resolvedPath, callback);
       }
     );
   }
@@ -197,7 +198,7 @@ class MergedFs {
 
     async.concat(
       this.devicesManager.getDevices().map(d => join(d, relativePath)),
-      (item, done) => fs.readdir(
+      (item, done) => this.fs.readdir(
         item,
         (err, res) => {
           if (err && err.code === CODES.ENOENT) {
@@ -228,7 +229,7 @@ class MergedFs {
 
     async.each(
       this.devicesManager.getDevices().map(d => join(d, relativePath)),
-      (item, done) => fs.rmdir(
+      (item, done) => this.fs.rmdir(
         item,
         (err) => {
           if (err && err.code === CODES.ENOENT) {
@@ -261,7 +262,7 @@ class MergedFs {
     }
 
     async.tryEach(
-      this.devicesManager.getDevices().map(dev => (done => fs.readFile(join(dev, relativePath), options, done))),
+      this.devicesManager.getDevices().map(dev => (done => this.fs.readFile(join(dev, relativePath), options, done))),
       callback
     );
   }
@@ -278,7 +279,7 @@ class MergedFs {
 
     async.each(
       this.devicesManager.getDevices().map(dev => join(dev, relativePath)),
-      (item, done) => fs.unlink(
+      (item, done) => this.fs.unlink(
         item,
         (err) => {
           if (err && err.code === CODES.ENOENT) {
@@ -336,7 +337,7 @@ class MergedFs {
               return callback(mkdirErr);
             }
 
-            return fs.writeFile(resolvedPath, data, options, callback);
+            return this.fs.writeFile(resolvedPath, data, options, callback);
           });
         });
       });
@@ -348,7 +349,7 @@ class MergedFs {
 
     try {
       resolvedPath = this._resolvePathSync(path);
-      return fs.createReadStream(resolvedPath, options);
+      return this.fs.createReadStream(resolvedPath, options);
     } catch (e) {
       throw createNotExistError(`Failed to create read stream for "${resolvedPath || path}": ${e}`);
     }
@@ -383,7 +384,7 @@ class MergedFs {
       }
     }
 
-    return fs.createWriteStream(resolvedPath, options);
+    return this.fs.createWriteStream(resolvedPath, options);
   }
 }
 
