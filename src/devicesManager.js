@@ -4,6 +4,7 @@ const EventEmitter = require('events');
 const async = require('async');
 
 const mathUtils = require('./mathUtils');
+const {CODES} = require('./errorHelpers');
 
 const DEFAULT_STORAGE_DIR_NAME = '.slug-storage';
 const DEFAULT_LOOK_FOR_INTERVAL = 5 * 1000;
@@ -47,7 +48,7 @@ class DevicesManager extends EventEmitter {
   _asyncFilterNonExisting(paths, done) {
     return this.fs.stat(
       paths,
-      err => done(null, err && err.code === 'ENOENT')
+      err => done(null, err && err.code === CODES.ENOENT)
     );
   }
 
