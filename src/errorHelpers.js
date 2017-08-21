@@ -1,7 +1,8 @@
 const CODES = {
   EEXIST: 'EEXIST',
   EISFILE: 'EISFILE',
-  ENOENT: 'ENOENT'
+  ENOENT: 'ENOENT',
+  ENOTEMPTY: 'ENOTEMPTY'
 };
 
 function createError(message, code = CODES.ENOENT) {

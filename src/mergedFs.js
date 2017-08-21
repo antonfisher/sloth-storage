@@ -35,18 +35,24 @@ class MergedFs {
       return process.nextTick(() => callback(e));
     }
 
-    // TODO implement random access to devices
-    async.detect(
-      this.devicesManager.getDevices(),
-      (dev, done) => this.fs.access(
+    let stat;
+    async.detectSeries(
+      this.devicesManager.getDevices(), // TODO implement random access to devices
+      (dev, done) => this.fs.stat(
         join(dev, relativePath),
-        (err => done(null, !err))
+        (err, devStat) => {
+          if (err) {
+            return done(null, false);
+          }
+          stat = devStat;
+          return done(null, true);
+        }
       ),
       (err, dev) => {
         if (!err && typeof dev === 'undefined') {
           return callback(createNotExistError(`Failed to resolve path "${relativePath}"`));
         }
-        callback(err, join(dev, relativePath));
+        callback(err, join(dev, relativePath), stat);
       }
     );
   }
@@ -215,6 +221,53 @@ class MergedFs {
         return callback(err, [...new Set(contents)]);
       }
     );
+  }
+
+  rename(oldPath, newPath, callback) {
+    async.waterfall([
+      (done) => this._resolvePath(oldPath, (oldPathErr) => done(oldPathErr)),
+      (done) => this._resolvePath(newPath, (newPathErr, newResolverPath, newStat) => {
+        if (!newPathErr && newStat.isDirectory()) { // path exists
+          return done(createError('Rename destination already exist', CODES.ENOTEMPTY));
+        }
+        return done();
+      }),
+      (done) => {
+        process.nextTick(() => {
+          try {
+            return done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath));
+          } catch (e) {
+            return done(e);
+          }
+        });
+      },
+      (oldRelativePath, newRelativePath, done) => {
+        let isRenamed = false;
+        async.each(
+          this.devicesManager.getDevices(),
+          (dev, eachRenameDone) => this.fs.rename(
+            join(dev, oldRelativePath),
+            join(dev, newRelativePath),
+            (renameErr) => {
+              if (renameErr && renameErr.code === CODES.ENOENT) {
+                return eachRenameDone(null);
+              } else if (!renameErr) {
+                isRenamed = true;
+              }
+              return eachRenameDone(renameErr);
+            }
+          ),
+          (renameErr) => {
+            if (!isRenamed) {
+              return done(createNotExistError(`Cannot rename path: "${oldRelativePath}" -> "${newRelativePath}"`));
+            }
+            return done(renameErr);
+          }
+        );
+      }
+    ], (err) => {
+      return callback(err);
+    });
   }
 
   rmdir(path, callback) {

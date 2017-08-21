@@ -10,7 +10,7 @@ const options = {
 };
 
 const workDir = process.argv[2];
-const workPath = join(process.cwd(), workDir);
+const workPath = (workDir[0] === '/' ? workDir : join(process.cwd(), workDir));
 console.log(`Used devices path: ${workPath}`);
 
 const devicesManager = new DevicesManager({devicesPath: workPath});

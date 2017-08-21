@@ -457,6 +457,90 @@ describe('mergedFs', () => {
     });
   });
 
+  describe('#rename()', () => {
+    it('should rename an existing directory to non-existing directory', (done) => {
+      const oldName = 'dir3';
+      const newName = 'dir3-new';
+
+      mergedFs.rename(join(testFsPath, oldName), join(testFsPath, newName), (err) => {
+        expect(err).to.not.be.ok();
+        if (err) {
+          return done(err);
+        }
+
+        mergedFs.readdir(testFsPath, (err, res) => {
+          expect(res).to.be.an('array');
+          expect(res).to.contain(newName);
+          expect(res).to.not.contain(oldName);
+          done(err);
+        });
+      });
+    });
+
+    it('should rename an existing file to non-existing file', (done) => {
+      const oldDir = 'dir1';
+      const oldName = 'file1-1.txt';
+      const newName = 'file1-1-new.txt';
+
+      mergedFs.rename(join(testFsPath, oldDir, oldName), join(testFsPath, oldDir, newName), (err) => {
+        expect(err).to.not.be.ok();
+        if (err) {
+          return done(err);
+        }
+
+        mergedFs.readdir(join(testFsPath, oldDir), (err, res) => {
+          expect(res).to.be.an('array');
+          expect(res).to.contain(newName);
+          expect(res).to.not.contain(oldName);
+          done(err);
+        });
+      });
+    });
+
+    it('should rename an existing file to existing file', (done) => {
+      const oldName = 'file1.txt';
+      const newName = 'file2.txt';
+
+      mergedFs.rename(join(testFsPath, oldName), join(testFsPath, newName), (err) => {
+        expect(err).to.not.be.ok();
+        if (err) {
+          return done(err);
+        }
+
+        mergedFs.readdir(join(testFsPath), (err, res) => {
+          expect(res).to.be.an('array');
+          expect(res).to.contain(newName);
+          expect(res).to.not.contain(oldName);
+          done(err);
+        });
+      });
+    });
+
+    it('should return ENOTEMPTY error if new directory path not empty', (done) => {
+      mergedFs.rename(join(testFsPath, 'dir1'), join(testFsPath, 'dir2'), (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', CODES.ENOTEMPTY);
+        done();
+      });
+    });
+
+    it('should return ENOENT error for non-existing path', (done) => {
+      mergedFs.rename(join(testFsPath, 'dir-not-exist'), join(testFsPath, 'dir-not-exist-new'), (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', CODES.ENOENT);
+        done();
+      });
+    });
+
+    it('should return ENOENT for out of scope path', (done) => {
+      mergedFs.rename('/path-out-of-scope', '/path-out-of-scope-new', (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', CODES.ENOENT);
+        done();
+      });
+    });
+  });
+
   describe('#rmdir()', () => {
     it('should remove existing directory', (done) => {
       mergedFs.rmdir(join(testFsPath, 'dir2'), (err) => {
