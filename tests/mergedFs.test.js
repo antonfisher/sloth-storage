@@ -468,11 +468,11 @@ describe('mergedFs', () => {
           return done(err);
         }
 
-        mergedFs.readdir(testFsPath, (err, res) => {
+        mergedFs.readdir(testFsPath, (errReaddir, res) => {
           expect(res).to.be.an('array');
           expect(res).to.contain(newName);
           expect(res).to.not.contain(oldName);
-          done(err);
+          done(errReaddir);
         });
       });
     });
@@ -488,11 +488,11 @@ describe('mergedFs', () => {
           return done(err);
         }
 
-        mergedFs.readdir(join(testFsPath, oldDir), (err, res) => {
+        mergedFs.readdir(join(testFsPath, oldDir), (errReaddir, res) => {
           expect(res).to.be.an('array');
           expect(res).to.contain(newName);
           expect(res).to.not.contain(oldName);
-          done(err);
+          done(errReaddir);
         });
       });
     });
@@ -507,11 +507,11 @@ describe('mergedFs', () => {
           return done(err);
         }
 
-        mergedFs.readdir(join(testFsPath), (err, res) => {
+        mergedFs.readdir(join(testFsPath), (errReaddir, res) => {
           expect(res).to.be.an('array');
           expect(res).to.contain(newName);
           expect(res).to.not.contain(oldName);
-          done(err);
+          done(errReaddir);
         });
       });
     });

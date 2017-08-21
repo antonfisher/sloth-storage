@@ -225,22 +225,20 @@ class MergedFs {
 
   rename(oldPath, newPath, callback) {
     async.waterfall([
-      (done) => this._resolvePath(oldPath, (oldPathErr) => done(oldPathErr)),
-      (done) => this._resolvePath(newPath, (newPathErr, newResolverPath, newStat) => {
+      done => this._resolvePath(oldPath, oldPathErr => done(oldPathErr)),
+      done => this._resolvePath(newPath, (newPathErr, newResolverPath, newStat) => {
         if (!newPathErr && newStat.isDirectory()) { // path exists
           return done(createError('Rename destination already exist', CODES.ENOTEMPTY));
         }
         return done();
       }),
-      (done) => {
-        process.nextTick(() => {
-          try {
-            return done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath));
-          } catch (e) {
-            return done(e);
-          }
-        });
-      },
+      done => process.nextTick(() => {
+        try {
+          return done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath));
+        } catch (e) {
+          return done(e);
+        }
+      }),
       (oldRelativePath, newRelativePath, done) => {
         let isRenamed = false;
         async.each(
@@ -265,9 +263,7 @@ class MergedFs {
           }
         );
       }
-    ], (err) => {
-      return callback(err);
-    });
+    ], err => callback(err));
   }
 
   rmdir(path, callback) {
