@@ -516,6 +516,23 @@ describe('mergedFs', () => {
       });
     });
 
+    it('should return an error if all renames failed', (done) => {
+      const enoentError = new Error();
+      enoentError.code = CODES.ENOENT;
+      const mockFs = require('fs'); //eslint-disable-line global-require
+      simple.mock(mockFs, 'rename').callbackWith(enoentError);
+      const localMergedFs = new MergedFs({devicesManager, fs: mockFs});
+
+      localMergedFs.rename(join(testFsPath, 'dir3'), join(testFsPath, 'dir3-new'), (err) => {
+        expect(err).to.be.an(Error);
+        expect(err).to.have.property('code', CODES.ENOENT);
+        expect(err).to.have.property('message');
+        expect(err.message).to.contain('->');
+        simple.restore();
+        done();
+      });
+    });
+
     it('should return ENOTEMPTY error if new directory path not empty', (done) => {
       mergedFs.rename(join(testFsPath, 'dir1'), join(testFsPath, 'dir2'), (err) => {
         expect(err).to.be.an(Error);
