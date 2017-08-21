@@ -37,7 +37,7 @@ class MergedFs {
 
     let stat;
     async.detectSeries(
-      this.devicesManager.getDevices(), // TODO implement random access to devices
+      this.devicesManager.getDevices(true),
       (dev, done) => this.fs.stat(
         join(dev, relativePath),
         (err, devStat) => {
@@ -65,8 +65,7 @@ class MergedFs {
       throw createNotExistError(`Empty relative path parsed from: ${path}`);
     }
 
-    // TODO implement random access to devices
-    const resolvedPath = this.devicesManager.getDevices().reduce((acc, dev) => {
+    const resolvedPath = this.devicesManager.getDevices(true).reduce((acc, dev) => {
       if (acc) {
         return acc;
       }
@@ -311,7 +310,9 @@ class MergedFs {
     }
 
     async.tryEach(
-      this.devicesManager.getDevices().map(dev => (done => this.fs.readFile(join(dev, relativePath), options, done))),
+      this.devicesManager.getDevices(true).map(
+        dev => (done => this.fs.readFile(join(dev, relativePath), options, done))
+      ),
       callback
     );
   }

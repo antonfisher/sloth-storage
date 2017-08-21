@@ -123,7 +123,11 @@ class DevicesManager extends EventEmitter {
     return this.devicesPath;
   }
 
-  getDevices() {
+  getDevices(random = false) {
+    if (random) {
+      return this.devices.sort(() => (0.5 - Math.random()));
+    }
+
     return this.devices;
   }
 
