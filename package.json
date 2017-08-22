@@ -18,6 +18,7 @@
   },
   "scripts": {
     "start": "node ./index.js",
+    "debug": "node --inspect ./index.js",
     "test": "mocha tests",
     "test-watch": "mocha --inspect --watch tests",
     "cover": "export NODE_ENV=test && istanbul cover _mocha -- --recursive ./tests",

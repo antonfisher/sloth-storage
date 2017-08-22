@@ -21,11 +21,11 @@ const server = new FtpServer(options.host, {
   pasvPortRangeEnd: 1050,
   tlsOptions: options.tls,
   allowUnauthorizedTls: true,
-  useWriteFile: true,
-  useReadFile: true,
-  uploadMaxSlurpSize: 7000, // N/A unless 'useWriteFile' is true.
+  useWriteFile: false, // unstable
+  useReadFile: false, // unstable
+  uploadMaxSlurpSize: 1024 * 1024 * 1024, // N/A unless 'useWriteFile' is true.
   getInitialCwd: () => '/',
-  getRoot: () => workPath
+  getRoot: () => '/'
 });
 
 server.on('error', (error) => {
