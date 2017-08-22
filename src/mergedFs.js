@@ -17,13 +17,15 @@ class MergedFs {
   _getRelativePath(path) {
     path = String(path);
 
-    const relativePath = path.replace(this.devicesManager.getDevicesPath(), '');
+    let relativePath = path.replace(this.devicesManager.getDevicesPath(), '');
 
-    if (relativePath === path) {
+    if (relativePath === path && relativePath[0] && relativePath[0] === '/') {
       throw createNotExistError(`Cannot resolve path "${path}", it is out of device directories`);
+    } else {
+      relativePath = relativePath.replace(/^\//, '');
     }
 
-    return (relativePath || '/');
+    return relativePath;
   }
 
   //TODO return stat
@@ -398,6 +400,10 @@ class MergedFs {
     let resolvedPath;
 
     try {
+      if (!path) {
+        throw new Error('path is empty');
+      }
+
       resolvedPath = this._resolvePathSync(path);
       return this.fs.createReadStream(resolvedPath, options);
     } catch (e) {
@@ -409,6 +415,10 @@ class MergedFs {
     const relativePath = this._getRelativePath(path);
     const device = this.devicesManager.getDeviceForWriteSync();
     const resolvedPath = join(device, relativePath);
+
+    if (!path) {
+      throw createNotExistError(`Cannot create write stream, path is empty: ${path}`);
+    }
 
     let stat;
     try {

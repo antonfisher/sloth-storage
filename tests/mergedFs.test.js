@@ -62,7 +62,7 @@ describe('mergedFs', () => {
 
   describe('#_getRelativePath()', () => {
     it('should return path w/o base path', () => {
-      const path = '/test/test.txt';
+      const path = 'test/test.txt';
       const fullPath = join(devicesManager.getDevicesPath(), path);
       expect(mergedFs._getRelativePath(fullPath)).to.be(path);
     });
@@ -78,14 +78,14 @@ describe('mergedFs', () => {
         });
     });
 
-    it('should return "/" for devices root path', () => {
-      expect(mergedFs._getRelativePath(devicesManager.getDevicesPath())).to.be('/');
+    it('should return empty string for devices root path', () => {
+      expect(mergedFs._getRelativePath(devicesManager.getDevicesPath())).to.be('');
     });
   });
 
   describe('#_resolvePath()', () => {
     it('should return path to file on device', (done) => {
-      mergedFs._resolvePath(join(testFsPath, 'file1.txt'), (err, res) => {
+      mergedFs._resolvePath('file1.txt', (err, res) => {
         expect(err).to.not.be.ok();
         expect(res).to.be.a('string');
         expect(res).to.be(`${testFsPath}/dev1/.slug-storage/file1.txt`);
@@ -94,7 +94,7 @@ describe('mergedFs', () => {
     });
 
     it('should return an ENOENT error if path is not exist', (done) => {
-      mergedFs._resolvePath(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
+      mergedFs._resolvePath('file-not-exist.txt', (err, res) => {
         expect(err).to.be.a(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
         expect(res).to.be(undefined);
@@ -114,14 +114,14 @@ describe('mergedFs', () => {
 
   describe('#_resolvePathSync()', () => {
     it('should return path to file on device', () => {
-      const resolvedPath = mergedFs._resolvePathSync(join(testFsPath, 'file1.txt'));
+      const resolvedPath = mergedFs._resolvePathSync('file1.txt');
 
       expect(resolvedPath).to.be(`${testFsPath}/dev1/.slug-storage/file1.txt`);
     });
 
     it('should throw an ENOENT error if path is not exist', () => {
       expect(mergedFs._resolvePathSync.bind(mergedFs))
-        .withArgs(join(testFsPath, '.slug-storage/file-not-exist.txt'))
+        .withArgs('file-not-exist.txt')
         .to
         .throwException((e) => {
           expect(e).to.be.a(Error);
@@ -298,7 +298,7 @@ describe('mergedFs', () => {
       const dir = 'dir-new-1';
       const devices = devicesManager.getDevices();
 
-      mergedFs.mkdir(join(testFsPath, dir), (errMkdir) => {
+      mergedFs.mkdir(dir, (errMkdir) => {
         if (errMkdir) {
           return done(errMkdir);
         }
@@ -321,7 +321,7 @@ describe('mergedFs', () => {
       const subDir = 'dir1';
       const devices = devicesManager.getDevices();
 
-      mergedFs.mkdir(join(testFsPath, subDir, dir), (errMkdir) => {
+      mergedFs.mkdir(join(subDir, dir), (errMkdir) => {
         if (errMkdir) {
           return done(errMkdir);
         }
@@ -344,7 +344,7 @@ describe('mergedFs', () => {
       const dir = 'dir-new-3';
       const devices = devicesManager.getDevices();
 
-      mergedFs.mkdir(join(testFsPath, dir), mode, (errMkdir) => {
+      mergedFs.mkdir(dir, mode, (errMkdir) => {
         if (errMkdir) {
           return done(errMkdir);
         }
@@ -368,7 +368,7 @@ describe('mergedFs', () => {
     });
 
     it('should return ENOENT if parent of second level directory doesn\'t exist', (done) => {
-      mergedFs.mkdir(join(testFsPath, 'dir-not-exist', 'dir-new-4'), (err) => {
+      mergedFs.mkdir(join('dir-not-exist', 'dir-new-4'), (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
         done();
@@ -379,7 +379,7 @@ describe('mergedFs', () => {
       const internalError = new Error();
       internalError.code = 'lol-error';
       simple.mock(devicesManager, 'getDeviceForWrite').callbackWith(internalError);
-      mergedFs.mkdir(join(testFsPath, 'dir-new'), (err) => {
+      mergedFs.mkdir('dir-new', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', internalError.code);
         simple.restore();
@@ -390,8 +390,10 @@ describe('mergedFs', () => {
     it('should return an error if error happened during creating recursive repository', (done) => {
       const internalError = new Error();
       internalError.code = 'lol-error';
+
       simple.mock(mergedFs, '_mkdirRecursive').callbackWith(internalError);
-      mergedFs.mkdir(join(testFsPath, 'dir-new'), (err) => {
+
+      mergedFs.mkdir('dir-new', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', internalError.code);
         simple.restore();
@@ -408,7 +410,7 @@ describe('mergedFs', () => {
     });
 
     it('should return EEXIST if directory already exist', (done) => {
-      mergedFs.mkdir(join(testFsPath, 'dir1'), (err) => {
+      mergedFs.mkdir('dir1', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.EEXIST);
         done();
@@ -418,7 +420,7 @@ describe('mergedFs', () => {
 
   describe('#readdir()', () => {
     it('should return list of files in directory', (done) => {
-      mergedFs.readdir(testFsPath, (err, res) => {
+      mergedFs.readdir('', (err, res) => {
         expect(res).to.be.an('array');
         expect(res).to.have.length(5);
         expect(res).to.contain('dir1');
@@ -431,7 +433,7 @@ describe('mergedFs', () => {
     });
 
     it('should return list of files in sub-directory', (done) => {
-      mergedFs.readdir(join(testFsPath, 'dir1'), (err, res) => {
+      mergedFs.readdir('dir1', (err, res) => {
         expect(res).to.be.an('array');
         expect(res).to.have.length(1);
         expect(res).to.contain('file1-1.txt');
@@ -440,7 +442,7 @@ describe('mergedFs', () => {
     });
 
     it('should return ENOENT error for non-existing directory', (done) => {
-      mergedFs.readdir(join(testFsPath, 'dir-not-exist'), (err, res) => {
+      mergedFs.readdir('dir-not-exist', (err, res) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
         expect(res).to.be(undefined);
@@ -462,13 +464,13 @@ describe('mergedFs', () => {
       const oldName = 'dir3';
       const newName = 'dir3-new';
 
-      mergedFs.rename(join(testFsPath, oldName), join(testFsPath, newName), (err) => {
+      mergedFs.rename(oldName, newName, (err) => {
         expect(err).to.not.be.ok();
         if (err) {
           return done(err);
         }
 
-        mergedFs.readdir(testFsPath, (errReaddir, res) => {
+        mergedFs.readdir('', (errReaddir, res) => {
           expect(res).to.be.an('array');
           expect(res).to.contain(newName);
           expect(res).to.not.contain(oldName);
@@ -482,13 +484,13 @@ describe('mergedFs', () => {
       const oldName = 'file1-1.txt';
       const newName = 'file1-1-new.txt';
 
-      mergedFs.rename(join(testFsPath, oldDir, oldName), join(testFsPath, oldDir, newName), (err) => {
+      mergedFs.rename(join(oldDir, oldName), join(oldDir, newName), (err) => {
         expect(err).to.not.be.ok();
         if (err) {
           return done(err);
         }
 
-        mergedFs.readdir(join(testFsPath, oldDir), (errReaddir, res) => {
+        mergedFs.readdir(oldDir, (errReaddir, res) => {
           expect(res).to.be.an('array');
           expect(res).to.contain(newName);
           expect(res).to.not.contain(oldName);
@@ -501,13 +503,13 @@ describe('mergedFs', () => {
       const oldName = 'file1.txt';
       const newName = 'file2.txt';
 
-      mergedFs.rename(join(testFsPath, oldName), join(testFsPath, newName), (err) => {
+      mergedFs.rename(oldName, newName, (err) => {
         expect(err).to.not.be.ok();
         if (err) {
           return done(err);
         }
 
-        mergedFs.readdir(join(testFsPath), (errReaddir, res) => {
+        mergedFs.readdir('', (errReaddir, res) => {
           expect(res).to.be.an('array');
           expect(res).to.contain(newName);
           expect(res).to.not.contain(oldName);
@@ -523,7 +525,7 @@ describe('mergedFs', () => {
       simple.mock(mockFs, 'rename').callbackWith(enoentError);
       const localMergedFs = new MergedFs({devicesManager, fs: mockFs});
 
-      localMergedFs.rename(join(testFsPath, 'dir3'), join(testFsPath, 'dir3-new'), (err) => {
+      localMergedFs.rename('dir3', 'dir3-new', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
         expect(err).to.have.property('message');
@@ -534,7 +536,7 @@ describe('mergedFs', () => {
     });
 
     it('should return ENOTEMPTY error if new directory path not empty', (done) => {
-      mergedFs.rename(join(testFsPath, 'dir1'), join(testFsPath, 'dir2'), (err) => {
+      mergedFs.rename('dir1', 'dir2', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOTEMPTY);
         done();
@@ -542,7 +544,7 @@ describe('mergedFs', () => {
     });
 
     it('should return ENOENT error for non-existing path', (done) => {
-      mergedFs.rename(join(testFsPath, 'dir-not-exist'), join(testFsPath, 'dir-not-exist-new'), (err) => {
+      mergedFs.rename('dir-not-exist', 'dir-not-exist-new', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
         done();
@@ -560,14 +562,14 @@ describe('mergedFs', () => {
 
   describe('#rmdir()', () => {
     it('should remove existing directory', (done) => {
-      mergedFs.rmdir(join(testFsPath, 'dir2'), (err) => {
+      mergedFs.rmdir('dir2', (err) => {
         expect(err).to.be(null);
         done();
       });
     });
 
     it('should return error for non-existing directory', (done) => {
-      mergedFs.rmdir(join(testFsPath, 'dir-not-exist'), (err) => {
+      mergedFs.rmdir('dir-not-exist', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
         done();
@@ -585,7 +587,7 @@ describe('mergedFs', () => {
 
   describe('#exists()', () => { // this method is deprecated in node v8
     it('should return TRUE for existing file', (done) => {
-      mergedFs.exists(join(testFsPath, 'file1.txt'), (res) => {
+      mergedFs.exists('file1.txt', (res) => {
         expect(res).to.be.an('boolean');
         expect(res).to.be(true);
         done();
@@ -593,7 +595,7 @@ describe('mergedFs', () => {
     });
 
     it('should return FALSE for not existing file', (done) => {
-      mergedFs.exists(join(testFsPath, 'file-not-exist.txt'), (res) => {
+      mergedFs.exists('file-not-exist.txt', (res) => {
         expect(res).to.be.an('boolean');
         expect(res).to.be(false);
         done();
@@ -603,7 +605,7 @@ describe('mergedFs', () => {
 
   describe('#stat()', () => {
     it('should return stat for file', (done) => {
-      mergedFs.stat(join(testFsPath, 'file1.txt'), (err, res) => {
+      mergedFs.stat('file1.txt', (err, res) => {
         expect(res).to.be.an('object');
         expect(res).to.have.key('atime');
         done(err);
@@ -611,7 +613,7 @@ describe('mergedFs', () => {
     });
 
     it('should return error for non-existion file', (done) => {
-      mergedFs.stat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
+      mergedFs.stat('file-not-exist.txt', (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
@@ -623,7 +625,7 @@ describe('mergedFs', () => {
   describe('#statSync()', () => {
     it('should return stat for file', (done) => {
       try {
-        const stat = mergedFs.statSync(join(testFsPath, 'file1.txt'));
+        const stat = mergedFs.statSync('file1.txt');
         expect(stat).to.be.an('object');
         expect(stat).to.have.key('atime');
         done();
@@ -634,7 +636,7 @@ describe('mergedFs', () => {
 
     it('should return error for non-existion file', (done) => {
       try {
-        mergedFs.statSync(join(testFsPath, 'file-not-exist.txt'));
+        mergedFs.statSync('file-not-exist.txt');
         done('did not throw an exception');
       } catch (e) {
         expect(e).to.be.an(Error);
@@ -646,7 +648,7 @@ describe('mergedFs', () => {
 
   describe('#lstat()', () => {
     it('should return lstat for file', (done) => {
-      mergedFs.lstat(join(testFsPath, 'file2.txt'), (err, res) => {
+      mergedFs.lstat('file2.txt', (err, res) => {
         expect(res).to.be.an('object');
         expect(res).to.have.key('atime');
         done(err);
@@ -654,7 +656,7 @@ describe('mergedFs', () => {
     });
 
     it('should return lstat for link', (done) => {
-      mergedFs.lstat(join(testFsPath, 'dir3', 'link-file2.txt'), (err, res) => {
+      mergedFs.lstat(join('dir3', 'link-file2.txt'), (err, res) => {
         expect(res).to.be.an('object');
         expect(res).to.have.key('atime');
         done(err);
@@ -662,7 +664,7 @@ describe('mergedFs', () => {
     });
 
     it('should return error for non-existion file', (done) => {
-      mergedFs.lstat(join(testFsPath, 'file-not-exist.txt'), (err, res) => {
+      mergedFs.lstat('file-not-exist.txt', (err, res) => {
         expect(res).to.be(undefined);
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
@@ -673,7 +675,7 @@ describe('mergedFs', () => {
 
   describe('#readFile()', () => {
     it('should read existing file', (done) => {
-      mergedFs.readFile(join(testFsPath, 'file2.txt'), (err, data) => {
+      mergedFs.readFile('file2.txt', (err, data) => {
         expect(err).to.be(null);
         expect(data).to.be.a(Buffer);
         expect(data.toString()).to.be('content\n');
@@ -682,7 +684,7 @@ describe('mergedFs', () => {
     });
 
     it('should support enconding parameter', (done) => {
-      mergedFs.readFile(join(testFsPath, 'file2.txt'), 'utf8', (err, data) => {
+      mergedFs.readFile('file2.txt', 'utf8', (err, data) => {
         expect(err).to.be(null);
         expect(data).to.be('content\n');
         done(err);
@@ -690,7 +692,7 @@ describe('mergedFs', () => {
     });
 
     it('should return ENOENT error for non-existing file', (done) => {
-      mergedFs.readFile(join(testFsPath, 'file-not-exist.txt'), (err, data) => {
+      mergedFs.readFile('file-not-exist.txt', (err, data) => {
         expect(data).to.be(undefined);
         expect(err).to.be.a(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
@@ -710,7 +712,7 @@ describe('mergedFs', () => {
 
   describe('#unlink()', () => {
     it('should remove existing file', (done) => {
-      const filePath = join(testFsPath, 'file2.txt');
+      const filePath = 'file2.txt';
       mergedFs.unlink(filePath, (errUnlink) => {
         expect(errUnlink).to.be(null);
         mergedFs.readFile(filePath, (errRead) => {
@@ -722,7 +724,7 @@ describe('mergedFs', () => {
     });
 
     it('should return ENOENT error for non-existing file', (done) => {
-      const filePath = join(testFsPath, 'file-not-exist.txt');
+      const filePath = 'file-not-exist.txt';
       mergedFs.unlink(filePath, (err, res) => {
         expect(err).to.be.a(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
@@ -744,7 +746,7 @@ describe('mergedFs', () => {
   describe('#writeFile()', () => {
     it('should write file to the root', (done) => {
       const content = 'content';
-      const newFilePath = join(testFsPath, 'new-file.txt');
+      const newFilePath = 'new-file.txt';
 
       mergedFs.writeFile(newFilePath, content, 'utf8', (errWrite) => {
         expect(errWrite).to.not.be.ok();
@@ -762,7 +764,7 @@ describe('mergedFs', () => {
 
     it('should work w/o encoding parameter', (done) => {
       const content = 'content';
-      const newFilePath = join(testFsPath, 'new-file.txt');
+      const newFilePath = 'new-file.txt';
 
       mergedFs.writeFile(newFilePath, content, (err) => {
         expect(err).to.not.be.ok();
@@ -772,7 +774,7 @@ describe('mergedFs', () => {
 
     it('should write file to the directory', (done) => {
       const content = 'content';
-      const newFilePath = join(testFsPath, 'dir1', 'new-file.txt');
+      const newFilePath = join('dir1', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, content, 'utf8', (errWrite) => {
         expect(errWrite).to.not.be.ok();
@@ -789,7 +791,7 @@ describe('mergedFs', () => {
     });
 
     it('should return EISFILE if destination is a file, not a directory', (done) => {
-      const newFilePath = join(testFsPath, 'file1.txt', 'new-file.txt');
+      const newFilePath = join('file1.txt', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
@@ -799,7 +801,7 @@ describe('mergedFs', () => {
     });
 
     it('should return ENOENT error for non-existing directory', (done) => {
-      const newFilePath = join(testFsPath, 'dir-non-existing', 'new-file.txt');
+      const newFilePath = join('dir-non-existing', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
@@ -809,7 +811,7 @@ describe('mergedFs', () => {
     });
 
     it('should return ENOENT error for non-existing sub-directories', (done) => {
-      const newFilePath = join(testFsPath, 'dir-non-existing', 'dir-non-existing', 'new-file.txt');
+      const newFilePath = join('dir-non-existing', 'dir-non-existing', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
@@ -827,7 +829,7 @@ describe('mergedFs', () => {
     });
 
     it('should return EEXIST error if file alredy exist', (done) => {
-      mergedFs.writeFile(join(testFsPath, 'file1.txt'), '', 'utf8', (err) => {
+      mergedFs.writeFile('file1.txt', '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.EEXIST);
         done();
@@ -839,7 +841,7 @@ describe('mergedFs', () => {
       internalError.code = 'lol-error';
       simple.mock(devicesManager, 'getDeviceForWrite').callbackWith(internalError);
 
-      mergedFs.writeFile(join(testFsPath, 'new-file-2.txt'), '', 'utf8', (err) => {
+      mergedFs.writeFile('new-file-2.txt', '', 'utf8', (err) => {
         expect(err).to.be.a(Error);
         expect(err.code).to.be(internalError.code);
         done();
@@ -851,7 +853,7 @@ describe('mergedFs', () => {
       internalError.code = 'lol-error';
       simple.mock(mergedFs, '_mkdirRecursive').callbackWith(internalError);
 
-      mergedFs.writeFile(join(testFsPath, 'new-file-2.txt'), '', 'utf8', (err) => {
+      mergedFs.writeFile('new-file-2.txt', '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', internalError.code);
         simple.restore();
@@ -865,7 +867,7 @@ describe('mergedFs', () => {
       let stream;
 
       try {
-        stream = mergedFs.createReadStream(join(testFsPath, 'file2.txt'));
+        stream = mergedFs.createReadStream('file2.txt');
       } catch (e) {
         return done(`createReadStream() should not throw an exception: ${e}`);
       }
@@ -879,7 +881,7 @@ describe('mergedFs', () => {
 
     it('should support enconding parameter', (done) => {
       try {
-        const stream = mergedFs.createReadStream(join(testFsPath, 'file2.txt'), {encoding: 'utf8'});
+        const stream = mergedFs.createReadStream('file2.txt', {encoding: 'utf8'});
         stream.on('data', (data) => {
           expect(data).to.be.a('string');
           expect(data).to.be('content\n');
@@ -892,7 +894,7 @@ describe('mergedFs', () => {
 
     it('should return ENOENT error for non-existing file', (done) => {
       expect(mergedFs.createReadStream.bind(mergedFs))
-        .withArgs(join(testFsPath, 'file-not-exist.txt'))
+        .withArgs('file-not-exist.txt')
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
@@ -916,7 +918,7 @@ describe('mergedFs', () => {
   describe('#createWriteStream()', () => {
     it('should create write stream to the root', (done) => {
       const content = 'content';
-      const newFilePath = join(testFsPath, 'new-file.txt');
+      const newFilePath = 'new-file.txt';
 
       try {
         const stream = mergedFs.createWriteStream(newFilePath, {defaultEncoding: 'utf8'});
@@ -936,7 +938,7 @@ describe('mergedFs', () => {
 
     it('should work w/o encoding parameter', (done) => {
       const content = 'content';
-      const newFilePath = join(testFsPath, 'new-file-1.txt');
+      const newFilePath = 'new-file-1.txt';
 
       try {
         const stream = mergedFs.createWriteStream(newFilePath);
@@ -956,7 +958,7 @@ describe('mergedFs', () => {
 
     it('should create write stream to the file in sub-directory', (done) => {
       const content = 'content';
-      const newFilePath = join(testFsPath, 'dir2', 'new-file-in-directory.txt');
+      const newFilePath = join('dir2', 'new-file-in-directory.txt');
 
       try {
         const stream = mergedFs.createWriteStream(newFilePath, {defaultEncoding: 'utf8'});
@@ -976,7 +978,7 @@ describe('mergedFs', () => {
 
     it('should return EISFILE if destination contains a file in the path', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
-        .withArgs(join(testFsPath, 'file2.txt', 'file-not-exist.txt'))
+        .withArgs(join('file2.txt', 'file-not-exist.txt'))
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
@@ -987,7 +989,7 @@ describe('mergedFs', () => {
 
     it('should return ENOENT error for non-existing directory', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
-        .withArgs(join(testFsPath, 'dir-not-exist', 'file-not-exist.txt'))
+        .withArgs(join('dir-not-exist', 'file-not-exist.txt'))
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
@@ -998,7 +1000,7 @@ describe('mergedFs', () => {
 
     it('should return ENOENT error for non-existing sub-directories', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
-        .withArgs(join(testFsPath, 'dir-not-exist', 'dir-not-exist', 'file-not-exist.txt'))
+        .withArgs(join('dir-not-exist', 'dir-not-exist', 'file-not-exist.txt'))
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
@@ -1020,7 +1022,7 @@ describe('mergedFs', () => {
 
     it('should return EEXITS error if file already exist', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
-        .withArgs(join(testFsPath, 'file1.txt'))
+        .withArgs('file1.txt')
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
@@ -1035,7 +1037,7 @@ describe('mergedFs', () => {
       simple.mock(devicesManager, 'getDeviceForWriteSync').throwWith(internalError);
 
       expect(mergedFs.createWriteStream.bind(mergedFs))
-        .withArgs(join(testFsPath, 'new-file-2.txt'))
+        .withArgs('new-file-2.txt')
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
@@ -1049,7 +1051,7 @@ describe('mergedFs', () => {
       simple.mock(mergedFs, '_mkdirRecursiveSync').throwWith(internalError);
 
       expect(mergedFs.createWriteStream.bind(mergedFs))
-        .withArgs(join(testFsPath, 'new-file-3.txt'))
+        .withArgs('new-file-3.txt')
         .to
         .throwException((err) => {
           expect(err).to.be.a(Error);
