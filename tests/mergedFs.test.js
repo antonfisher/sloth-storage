@@ -67,15 +67,14 @@ describe('mergedFs', () => {
       expect(mergedFs._getRelativePath(fullPath)).to.be(path);
     });
 
-    it('should not resolve wrong paths', () => {
-      const path = '/test/test.txt';
-      expect(mergedFs._getRelativePath.bind(mergedFs))
-        .withArgs(path)
-        .to
-        .throwException((err) => {
-          expect(err).to.be.a(Error);
-          expect(err).to.have.property('code', CODES.ENOENT);
-        });
+    it('should handle path w/o leading "/"', () => {
+      const path = 'test/test.txt';
+      expect(mergedFs._getRelativePath(path)).to.be(path);
+    });
+
+    it('should handle path w/ leading "/"', () => {
+      const path = 'test/test.txt';
+      expect(mergedFs._getRelativePath(join('/', path))).to.be(path);
     });
 
     it('should return empty string for devices root path', () => {
@@ -401,14 +400,6 @@ describe('mergedFs', () => {
       });
     });
 
-    it('should return ENOENT for out of scope path', (done) => {
-      mergedFs.mkdir('/path-out-of-scope', (err) => {
-        expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', CODES.ENOENT);
-        done();
-      });
-    });
-
     it('should return EEXIST if directory already exist', (done) => {
       mergedFs.mkdir('dir1', (err) => {
         expect(err).to.be.an(Error);
@@ -450,8 +441,17 @@ describe('mergedFs', () => {
       });
     });
 
-    it('should return ENOENT for out of scope path', (done) => {
-      mergedFs.readdir('/path-out-of-scope', (err) => {
+    it('should return list of files in directory with leading "/"', (done) => {
+      mergedFs.readdir('dir1', (err, res) => {
+        expect(res).to.be.an('array');
+        expect(res).to.have.length(1);
+        expect(res).to.contain('file1-1.txt');
+        done(err);
+      });
+    });
+
+    it('should return ENOENT for non-existing path', (done) => {
+      mergedFs.readdir('/path-not-exist', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
         done();
@@ -814,14 +814,6 @@ describe('mergedFs', () => {
       const newFilePath = join('dir-non-existing', 'dir-non-existing', 'new-file.txt');
 
       mergedFs.writeFile(newFilePath, '', 'utf8', (err) => {
-        expect(err).to.be.an(Error);
-        expect(err).to.have.property('code', CODES.ENOENT);
-        done();
-      });
-    });
-
-    it('should return ENOENT for out of scope path', (done) => {
-      mergedFs.writeFile('/path-out-of-scope', '', 'utf8', (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
         done();
