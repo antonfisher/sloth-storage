@@ -15,17 +15,9 @@ class MergedFs {
   }
 
   _getRelativePath(path) {
-    path = String(path);
-
-    let relativePath = path.replace(this.devicesManager.getDevicesPath(), '');
-
-    //if (relativePath === path && relativePath[0] && relativePath[0] === '/') {
-    //  throw createNotExistError(`Cannot resolve path "${path}", it is out of device directories`);
-    //} else {
-      relativePath = relativePath.replace(/^\//, '');
-    //}
-
-    return relativePath;
+    return String(path)
+      .replace(this.devicesManager.getDevicesPath(), '')
+      .replace(/^\//, '');
   }
 
   //TODO return stat
