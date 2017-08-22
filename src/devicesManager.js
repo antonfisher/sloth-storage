@@ -125,7 +125,7 @@ class DevicesManager extends EventEmitter {
 
   getDevices(random = false) {
     if (random) {
-      return this.devices.sort(() => (0.5 - Math.random()));
+      return [...this.devices].sort(() => (0.5 - Math.random()));
     }
 
     return this.devices;
