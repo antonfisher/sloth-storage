@@ -5,11 +5,6 @@
 [![bitHound Overall Score](https://www.bithound.io/github/antonfisher/slug-storage/badges/score.svg)](https://www.bithound.io/github/antonfisher/slug-storage)
 [![Coverage Status](https://coveralls.io/repos/github/antonfisher/slug-storage/badge.svg?branch=master)](https://coveralls.io/github/antonfisher/slug-storage?branch=master)
 
-Stages:
-- [x] research
-- [ ] proof-of-concept building
-- [ ] hardware assembling
-
 ## Idea:
 
 The idea is to build drive distributed storage system with FTP interface on Node.js.
@@ -48,3 +43,9 @@ The idea is to build drive distributed storage system with FTP interface on Node
        | devices manager |
        +-----------------+
 ```
+
+## Current stage:
+- [x] research
+- [x] proof-of-concept building
+- [ ] **main codebase and tests**
+- [ ] hardware assembling
