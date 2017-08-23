@@ -184,6 +184,14 @@ describe('devicesManager', () => {
         expect(devices).to.contain(join(testFsPath, 'dev1', storageDirName));
         expect(devices).to.contain(join(testFsPath, 'dev2', storageDirName));
       });
+
+      it('should return ordered devices list', () => {
+        const devices = devicesManager.getDevices(true);
+        expect(devices).to.be.an('array');
+        expect(devices).to.have.length(2);
+        expect(devices[0]).to.be(join(testFsPath, 'dev1', storageDirName));
+        expect(devices[1]).to.be(join(testFsPath, 'dev2', storageDirName));
+      });
     });
 
     describe('#getDeviceForWrite()', () => {
