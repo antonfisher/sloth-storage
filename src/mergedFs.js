@@ -20,14 +20,8 @@ class MergedFs {
       .replace(/^\//, '');
   }
 
-  //TODO return stat
   _resolvePath(path, callback) {
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      return process.nextTick(() => callback(e));
-    }
+    const relativePath = this._getRelativePath(path);
 
     let stat;
     async.detectSeries(
@@ -52,12 +46,7 @@ class MergedFs {
   }
 
   _resolvePathSync(path) {
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      throw createNotExistError(`Empty relative path parsed from: ${path}`);
-    }
+    const relativePath = this._getRelativePath(path);
 
     const resolvedPath = this.devicesManager.getDevices(true).reduce((acc, dev) => {
       if (acc) {
@@ -152,12 +141,7 @@ class MergedFs {
       mode = 0o777;
     }
 
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      return process.nextTick(() => callback(e));
-    }
+    const relativePath = this._getRelativePath(path);
 
     this._resolvePath(path, (err, resolvedPath) => {
       if (!err) {
@@ -186,15 +170,9 @@ class MergedFs {
   }
 
   readdir(path, callback) {
+    const relativePath = this._getRelativePath(path);
+
     let isExist = false;
-
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      return process.nextTick(() => callback(e));
-    }
-
     async.concat(
       this.devicesManager.getDevices().map(d => join(d, relativePath)),
       (item, done) => this.fs.readdir(
@@ -225,13 +203,7 @@ class MergedFs {
         }
         return done();
       }),
-      done => process.nextTick(() => {
-        try {
-          return done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath));
-        } catch (e) {
-          return done(e);
-        }
-      }),
+      done => process.nextTick(() => done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath))),
       (oldRelativePath, newRelativePath, done) => {
         let isRenamed = false;
         async.each(
@@ -260,15 +232,9 @@ class MergedFs {
   }
 
   rmdir(path, callback) {
+    const relativePath = this._getRelativePath(path);
+
     let isExist = false;
-
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      return process.nextTick(() => callback(e));
-    }
-
     async.each(
       this.devicesManager.getDevices().map(d => join(d, relativePath)),
       (item, done) => this.fs.rmdir(
@@ -296,12 +262,7 @@ class MergedFs {
       options = {};
     }
 
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      return process.nextTick(() => callback(e));
-    }
+    const relativePath = this._getRelativePath(path);
 
     async.tryEach(
       this.devicesManager.getDevices(true).map(
@@ -312,15 +273,9 @@ class MergedFs {
   }
 
   unlink(path, callback) {
+    const relativePath = this._getRelativePath(path);
+
     let isExist = false;
-
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      return process.nextTick(() => callback(e));
-    }
-
     async.each(
       this.devicesManager.getDevices().map(dev => join(dev, relativePath)),
       (item, done) => this.fs.unlink(
@@ -348,12 +303,7 @@ class MergedFs {
       options = {};
     }
 
-    let relativePath;
-    try {
-      relativePath = this._getRelativePath(path);
-    } catch (e) {
-      return process.nextTick(() => callback(e));
-    }
+    const relativePath = this._getRelativePath(path);
 
     this.devicesManager.getDeviceForWrite((deviceErr, device) => {
       if (deviceErr) {

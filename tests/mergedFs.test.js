@@ -129,7 +129,7 @@ describe('mergedFs', () => {
     });
 
     it('should throw an ENOENT error if path is undefined', () => {
-      expect(mergedFs._resolvePathSync).to.throwException((e) => {
+      expect(mergedFs._resolvePathSync.bind(mergedFs)).to.throwException((e) => {
         expect(e).to.be.a(Error);
         expect(e).to.have.property('code', CODES.ENOENT);
       });
