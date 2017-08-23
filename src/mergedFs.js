@@ -25,7 +25,7 @@ class MergedFs {
 
     let stat;
     async.detectSeries(
-      this.devicesManager.getDevices(true),
+      this.devicesManager.getDevices(),
       (dev, done) => this.fs.stat(
         join(dev, relativePath),
         (err, devStat) => {
@@ -48,7 +48,7 @@ class MergedFs {
   _resolvePathSync(path) {
     const relativePath = this._getRelativePath(path);
 
-    const resolvedPath = this.devicesManager.getDevices(true).reduce((acc, dev) => {
+    const resolvedPath = this.devicesManager.getDevices().reduce((acc, dev) => {
       if (acc) {
         return acc;
       }
@@ -265,7 +265,7 @@ class MergedFs {
     const relativePath = this._getRelativePath(path);
 
     async.tryEach(
-      this.devicesManager.getDevices(true).map(
+      this.devicesManager.getDevices().map(
         dev => (done => this.fs.readFile(join(dev, relativePath), options, done))
       ),
       callback

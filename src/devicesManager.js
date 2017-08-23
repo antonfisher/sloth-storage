@@ -123,12 +123,12 @@ class DevicesManager extends EventEmitter {
     return this.devicesPath;
   }
 
-  getDevices(random = false) {
-    if (random) {
-      return [...this.devices].sort(() => (0.5 - Math.random()));
+  getDevices(ordered = false) {
+    if (ordered) {
+      return this.devices;
     }
 
-    return this.devices;
+    return [...this.devices].sort(() => (0.5 - Math.random()));
   }
 
   //TODO use capacity analisys
