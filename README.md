@@ -49,3 +49,7 @@ The idea is to build drive distributed storage system with FTP interface on Node
 - [x] proof-of-concept building
 - [ ] **main codebase and tests**
 - [ ] hardware assembling
+
+## License
+
+MIT License. Free use and change.
