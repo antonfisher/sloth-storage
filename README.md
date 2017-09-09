@@ -4,16 +4,15 @@
 [![Coverage Status](https://coveralls.io/repos/github/antonfisher/slug-storage/badge.svg?branch=master)](https://coveralls.io/github/antonfisher/slug-storage?branch=master)
 [![bitHound Dependencies](https://www.bithound.io/github/antonfisher/slug-storage/badges/dependencies.svg)](https://www.bithound.io/github/antonfisher/slug-storage/master/dependencies/npm)
 
-## Idea:
-
+## Idea
 The idea is to build drive distributed storage system with FTP interface on Node.js.
 
-## Features:
+## Features
 - distributes files on a bunch of USB-drives
 - keeps up file duplication for redundancy
 - provides FTP interface.
 
-## Configuration example:
+## Configuration example
 ```
 4Gb USB-drive -|     *-----------------------*
 4Gb USB-drive -|     |  S  T  O  R  A  G  E  |
@@ -43,8 +42,11 @@ The idea is to build drive distributed storage system with FTP interface on Node
        +-----------------+
 ```
 
-## Current stage:
+## Current stage
 - [x] research
 - [x] proof-of-concept building
 - [ ] **main codebase and tests**
 - [ ] hardware assembling
+
+## License
+MIT License. Free use and change.
