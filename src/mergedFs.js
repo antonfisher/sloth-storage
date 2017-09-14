@@ -174,7 +174,7 @@ class MergedFs {
 
     let isExist = false;
     async.concat(
-      this.devicesManager.getDevices().map(d => join(d, relativePath)),
+      this.devicesManager.getDevices().map((d) => join(d, relativePath)),
       (item, done) => this.fs.readdir(
         item,
         (err, res) => {
@@ -196,14 +196,14 @@ class MergedFs {
 
   rename(oldPath, newPath, callback) {
     async.waterfall([
-      done => this._resolvePath(oldPath, oldPathErr => done(oldPathErr)),
-      done => this._resolvePath(newPath, (newPathErr, newResolverPath, newStat) => {
+      (done) => this._resolvePath(oldPath, (oldPathErr) => done(oldPathErr)),
+      (done) => this._resolvePath(newPath, (newPathErr, newResolverPath, newStat) => {
         if (!newPathErr && newStat.isDirectory()) { // path exists
           return done(createError('Rename destination already exist', CODES.ENOTEMPTY));
         }
         return done();
       }),
-      done => process.nextTick(() => done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath))),
+      (done) => process.nextTick(() => done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath))),
       (oldRelativePath, newRelativePath, done) => {
         let isRenamed = false;
         async.each(
@@ -228,7 +228,7 @@ class MergedFs {
           }
         );
       }
-    ], err => callback(err));
+    ], (err) => callback(err));
   }
 
   rmdir(path, callback) {
@@ -236,7 +236,7 @@ class MergedFs {
 
     let isExist = false;
     async.each(
-      this.devicesManager.getDevices().map(d => join(d, relativePath)),
+      this.devicesManager.getDevices().map((d) => join(d, relativePath)),
       (item, done) => this.fs.rmdir(
         item,
         (err) => {
@@ -266,7 +266,7 @@ class MergedFs {
 
     async.tryEach(
       this.devicesManager.getDevices().map(
-        dev => (done => this.fs.readFile(join(dev, relativePath), options, done))
+        (dev) => ((done) => this.fs.readFile(join(dev, relativePath), options, done))
       ),
       callback
     );
@@ -277,7 +277,7 @@ class MergedFs {
 
     let isExist = false;
     async.each(
-      this.devicesManager.getDevices().map(dev => join(dev, relativePath)),
+      this.devicesManager.getDevices().map((dev) => join(dev, relativePath)),
       (item, done) => this.fs.unlink(
         item,
         (err) => {

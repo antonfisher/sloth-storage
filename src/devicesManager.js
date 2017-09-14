@@ -48,30 +48,30 @@ class DevicesManager extends EventEmitter {
   _asyncFilterNonExisting(paths, done) {
     return this.fs.stat(
       paths,
-      err => done(null, err && err.code === CODES.ENOENT)
+      (err) => done(null, err && err.code === CODES.ENOENT)
     );
   }
 
   _lookupDevices() {
     //console.log('Look up devices start...');
     async.waterfall([
-      done => this.fs.readdir(this.devicesPath, (err, files) => {
+      (done) => this.fs.readdir(this.devicesPath, (err, files) => {
         if (err) {
           return done(new Error(`Cannot read devices directory "${this.devicesPath}": ${err}`));
         }
-        return done(null, files.map(fileName => join(this.devicesPath, fileName)));
+        return done(null, files.map((fileName) => join(this.devicesPath, fileName)));
       }),
       (filePaths, done) => async.filter(filePaths, this._asyncFilterDirs, (err, dirs) => {
         if (!dirs.length) {
           return done(new Error(`Fail to find any devices in "${this.devicesPath}"`));
         }
-        return done(null, dirs.map(dir => join(dir, this.storageDirName)));
+        return done(null, dirs.map((dir) => join(dir, this.storageDirName)));
       }),
       (storageDirs, done) => async.filter(
         storageDirs,
         this._asyncFilterNonExisting,
         (err, nonExistingStorageDirs) => {
-          const existingStorageDirs = storageDirs.filter(dir => !nonExistingStorageDirs.includes(dir));
+          const existingStorageDirs = storageDirs.filter((dir) => !nonExistingStorageDirs.includes(dir));
           return done(null, existingStorageDirs, nonExistingStorageDirs);
         }
       ),
@@ -91,7 +91,7 @@ class DevicesManager extends EventEmitter {
               }
               return mkdirDone(null);
             }),
-            err => done(err, existingStorageDirs.concat(addedStorageDirs), addedStorageDirs)
+            (err) => done(err, existingStorageDirs.concat(addedStorageDirs), addedStorageDirs)
           );
         } else {
           return done(null, existingStorageDirs, addedStorageDirs);
@@ -105,7 +105,7 @@ class DevicesManager extends EventEmitter {
         return this.emit(DevicesManager.EVENTS.ERROR, new Error(`Fail to process storage directories: ${err}`));
       }
 
-      const removedStorageDirs = this.devices.filter(dev => !devices.includes(dev));
+      const removedStorageDirs = this.devices.filter((dev) => !devices.includes(dev));
 
       this.devices = devices;
 
@@ -114,8 +114,8 @@ class DevicesManager extends EventEmitter {
         this.emit(DevicesManager.EVENTS.READY, this.devices);
       }
 
-      removedStorageDirs.forEach(dir => this.emit(DevicesManager.EVENTS.DEVICE_REMOVED, dir));
-      addedStorageDirs.forEach(dir => this.emit(DevicesManager.EVENTS.DEVICE_ADDED, dir));
+      removedStorageDirs.forEach((dir) => this.emit(DevicesManager.EVENTS.DEVICE_REMOVED, dir));
+      addedStorageDirs.forEach((dir) => this.emit(DevicesManager.EVENTS.DEVICE_ADDED, dir));
     });
   }
 

@@ -14,6 +14,7 @@
     "consistent-return": 0,
     "no-underscore-dangle": 0,
     "comma-dangle": ["error","never"],
+    "arrow-parens": ["error", "always"],
     "object-curly-spacing": ["error","never"],
     "max-len": ["error",120]
   }
