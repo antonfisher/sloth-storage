@@ -852,6 +852,20 @@ describe('mergedFs', () => {
         done();
       });
     });
+
+    it('should emit "fileUpdated" event', (done) => {
+      const content = 'content';
+      const newFilePath = 'new-file-3.txt';
+
+      mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (path) => {
+        expect(path).to.be(newFilePath);
+        done();
+      });
+
+      mergedFs.writeFile(newFilePath, content, 'utf8', (errWrite) => {
+        expect(errWrite).to.not.be.ok();
+      });
+    });
   });
 
   describe('#createReadStream()', () => {

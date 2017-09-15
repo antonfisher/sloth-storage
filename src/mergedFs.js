@@ -1,11 +1,14 @@
 const defaultNodeFs = require('fs');
 const {join, dirname} = require('path');
+const EventEmitter = require('events');
 const async = require('async');
 
 const {CODES, createError, createNotExistError} = require('./errorHelpers');
 
-class MergedFs {
+class MergedFs extends EventEmitter {
   constructor({devicesManager, fs = defaultNodeFs} = {}) {
+    super();
+
     if (!devicesManager) {
       throw new Error('No "devicesManager" parameter');
     }
@@ -325,19 +328,22 @@ class MergedFs {
             );
           }
 
-
           this._mkdirRecursive(dirname(resolvedPath), (mkdirErr) => {
             if (mkdirErr && mkdirErr.code !== CODES.EEXIST) { // probably this device already contain this directory
               return callback(mkdirErr);
             }
 
-            return this.fs.writeFile(resolvedPath, data, options, callback);
+            return this.fs.writeFile(resolvedPath, data, options, (writeErr) => {
+              this.emit(MergedFs.EVENTS.FILE_UPDATED, relativePath);
+              callback(writeErr);
+            });
           });
         });
       });
     });
   }
 
+  //not supported by replicator, remove?
   createReadStream(path, options) {
     let resolvedPath;
 
@@ -353,6 +359,7 @@ class MergedFs {
     }
   }
 
+  //not supported by replicator, remove?
   createWriteStream(path, options) {
     const relativePath = this._getRelativePath(path);
     const device = this.devicesManager.getDeviceForWriteSync();
@@ -389,5 +396,9 @@ class MergedFs {
     return this.fs.createWriteStream(resolvedPath, options);
   }
 }
+
+MergedFs.EVENTS = {
+  FILE_UPDATED: 'fileUpdated'
+};
 
 module.exports = MergedFs;
