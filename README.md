@@ -25,19 +25,19 @@ The idea is to build drive distributed storage system with FTP interface on Node
 
 ## Modules Hierarchy 
 ```
-            +--------+
-      +-----+ daemon +------+
-      |     +--------+      |
-      |                     |
-+-----v------+        +-----v------+
-| replicator |        | FTP server |
-+---------+--+        +-----+------+
-          |                 |
-          |       +---------v----------+
-          |       | mergeFs API module |
-          |       +---+----------------+
++--------+
+| daemon <------+
++--------+      |
+                |
+          +-----+------+
+          | FTP server <----+
+          +------------+    |
+                            |
++------------+    +---------+----------+
+| replicator <----> mergeFs API module |
++---------^--+    +---^----------------+
           |           |
-       +--v-----------v--+
+       +--+-----------+--+
        | devices manager |
        +-----------------+
 ```
