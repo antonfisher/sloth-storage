@@ -10,10 +10,10 @@ const options = {
 };
 
 const workDir = process.argv[2];
-const workPath = (workDir[0] === '/' ? workDir : join(process.cwd(), workDir));
-console.log(`Used devices path: ${workPath}`);
+const devicesPath = (workDir[0] === '/' ? workDir : join(process.cwd(), workDir));
+console.log(`Used devices path: ${devicesPath}`);
 
-const devicesManager = new DevicesManager({devicesPath: workPath});
+const devicesManager = new DevicesManager({devicesPath});
 const mergedFs = new MergedFs({devicesManager});
 
 const server = new FtpServer(options.host, {
