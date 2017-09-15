@@ -39,7 +39,7 @@ describe('devicesManager', () => {
     });
 
     it('should emit "deviceAdded" event', (done) => {
-      const lookupInterval = 200;
+      const lookupInterval = 100;
       devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
@@ -57,7 +57,7 @@ describe('devicesManager', () => {
     });
 
     it('should emit "deviceRemoved" event', (done) => {
-      const lookupInterval = 200;
+      const lookupInterval = 100;
       devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
@@ -75,7 +75,7 @@ describe('devicesManager', () => {
     });
 
     it('should find new device', (done) => {
-      const lookupInterval = 200;
+      const lookupInterval = 100;
       devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
@@ -132,7 +132,7 @@ describe('devicesManager', () => {
     });
 
     it('should emit "error" event for non-existing devices path', (done) => {
-      const lookupInterval = 200;
+      const lookupInterval = 100;
       const nonExistingPath = '/not-exist';
       const stoplookupInterval = setTimeout(() => {
         done('"error" event hasn\'t been thrown');
@@ -151,7 +151,7 @@ describe('devicesManager', () => {
 
   describe('Runtime methods', () => {
     let devicesManager;
-    const lookupInterval = 200;
+    const lookupInterval = 100;
 
     beforeEach((done) => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);

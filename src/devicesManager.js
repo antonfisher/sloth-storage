@@ -107,7 +107,7 @@ class DevicesManager extends EventEmitter {
 
       const removedStorageDirs = this.devices.filter((dev) => !devices.includes(dev));
 
-      this.devices = devices;
+      this.devices = devices.sort();
 
       if (this.devices.length > 0 && this.isInitLookup) {
         this.isInitLookup = false;
@@ -159,8 +159,8 @@ DevicesManager.EVENTS = {
   WARN: 'warn',
   ERROR: 'error',
   READY: 'ready',
-  DEVICE_ADDED: 'device_added',
-  DEVICE_REMOVED: 'device_removed'
+  DEVICE_ADDED: 'deviceAdded',
+  DEVICE_REMOVED: 'deviceRemoved'
 };
 
 module.exports = DevicesManager;
