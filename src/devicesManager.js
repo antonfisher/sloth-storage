@@ -1,4 +1,5 @@
 const defaultNodeFs = require('fs');
+const defaultChildProcess = require('child_process');
 const {join} = require('path');
 const EventEmitter = require('events');
 const async = require('async');
@@ -14,6 +15,7 @@ class DevicesManager extends EventEmitter {
     devicesPath,
     lookupInterval = DEFAULT_LOOK_FOR_INTERVAL,
     storageDirName = DEFAULT_STORAGE_DIR_NAME,
+    childProcess = defaultChildProcess,
     fs = defaultNodeFs
   } = {}) {
     super();
@@ -27,6 +29,7 @@ class DevicesManager extends EventEmitter {
 
     this.devicesPath = devicesPath;
     this.storageDirName = storageDirName;
+    this.childProcess = childProcess;
     this.fs = fs;
 
     this.devices = [];
@@ -52,6 +55,25 @@ class DevicesManager extends EventEmitter {
     );
   }
 
+  _getCapacity(callback) {
+    this.childProcess.exec('df --output=source,pcent', (err, res) => {
+      if (err) {
+        this.emit(DevicesManager.EVENTS.WARN, `Fail to get device capacities: ${err}`);
+        return callback(err);
+      }
+
+      const stats = res.split('\n').slice(1).reduce((acc, item) => {
+        const [source, percent] = item.replace(/\s+/g, ' ').split(' ');
+        if (percent && source && source.startsWith('/dev/')) {
+          acc[source] = Number(percent.replace('%', '')) / 100;
+        }
+        return acc;
+      }, {});
+
+      callback(err, stats);
+    });
+  }
+
   _lookupDevices() {
     //console.log('Look up devices start...');
     async.waterfall([
@@ -61,6 +83,20 @@ class DevicesManager extends EventEmitter {
         }
         return done(null, files.map((fileName) => join(this.devicesPath, fileName)));
       }),
+      //(done) => this.childProcess.exec('ls -la /dev/disk/by-path | grep usb | grep part', (err, res) => {
+      //  if (err) {
+      //    return done(new Error(`Fail to get device capacities: ${err}`));
+      //  }
+      //  const devicePaths = res.split('\n').reduce((acc, item) => {
+      //    const devices = item.split('../../');
+      //    if (devices[1]) {
+      //      acc.push(devices[1]);
+      //    }
+      //    return acc;
+      //  }, []);
+      //  console.log('## devicePaths', devicePaths);
+      //  done(null, devicePaths);
+      //}),
       (filePaths, done) => async.filter(filePaths, this._asyncFilterDirs, (err, dirs) => {
         if (!dirs.length) {
           return done(new Error(`Fail to find any devices in "${this.devicesPath}"`));

@@ -250,5 +250,11 @@ describe('devicesManager', () => {
         }, lookupInterval * 1.1);
       });
     });
+
+    xdescribe('#_getCapacity()', () => {
+      it('Should return capacities', (done) => {
+        devicesManager._getCapacity(done);
+      });
+    });
   });
 });
