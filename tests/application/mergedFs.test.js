@@ -4,10 +4,10 @@ const async = require('async');
 const expect = require('expect.js');
 const simple = require('simple-mock');
 
-const {exec} = require('./utils');
-const MergedFs = require('../src/mergedFs');
-const DevicesManager = require('../src/devicesManager');
-const {CODES} = require('../src/errorHelpers');
+const {exec} = require('../utils');
+const MergedFs = require('../../src/application/mergedFs');
+const DevicesManager = require('../../src/application/devicesManager');
+const {CODES} = require('../../src/application/errorHelpers');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);

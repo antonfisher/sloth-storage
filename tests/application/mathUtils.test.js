@@ -1,6 +1,6 @@
 const expect = require('expect.js');
 
-const mathUtils = require('../src/mathUtils');
+const mathUtils = require('../../src/application/mathUtils');
 
 describe('mathUtils', () => {
   it('#getRandomIntInclusive() should return the same int as defined in one-value range', () => {

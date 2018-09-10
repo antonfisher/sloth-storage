@@ -1,6 +1,6 @@
 const expect = require('expect.js');
 
-const {CODES, createError, createNotExistError} = require('../src/errorHelpers');
+const {CODES, createError, createNotExistError} = require('../../src/application/errorHelpers');
 
 describe('errorHelpers', () => {
   it('#createError() should return default error with code ENOENT', () => {

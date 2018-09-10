@@ -2,8 +2,8 @@ const {join} = require('path');
 const expect = require('expect.js');
 const simple = require('simple-mock');
 
-const {exec} = require('./utils');
-const DevicesManager = require('../src/devicesManager');
+const {exec} = require('../utils');
+const DevicesManager = require('../../src/application/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);

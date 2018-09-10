@@ -164,7 +164,7 @@ class DevicesManager extends EventEmitter {
       return this.devices;
     }
 
-    return [...this.devices].sort(() => (0.5 - Math.random()));
+    return [...this.devices].sort(() => (0.5 - Math.random() < 0 ? -1 : 1)); // random read access
   }
 
   //TODO use capacity analisys
