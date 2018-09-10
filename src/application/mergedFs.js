@@ -29,16 +29,14 @@ class MergedFs extends EventEmitter {
     let stat;
     async.detectSeries(
       this.devicesManager.getDevices(),
-      (dev, done) => this.fs.stat(
-        join(dev, relativePath),
-        (err, devStat) => {
+      (dev, done) =>
+        this.fs.stat(join(dev, relativePath), (err, devStat) => {
           if (err) {
             return done(null, false);
           }
           stat = devStat;
           return done(null, true);
-        }
-      ),
+        }),
       (err, dev) => {
         if (!err && typeof dev === 'undefined') {
           return callback(createNotExistError(`Failed to resolve path "${relativePath}"`));
@@ -104,22 +102,16 @@ class MergedFs extends EventEmitter {
   }
 
   exists(path, callback) {
-    return this._resolvePath(
-      path,
-      (err, resolvedPath) => callback(Boolean(resolvedPath))
-    );
+    return this._resolvePath(path, (err, resolvedPath) => callback(Boolean(resolvedPath)));
   }
 
   stat(path, callback) {
-    return this._resolvePath(
-      path,
-      (err, resolvedPath) => {
-        if (err) {
-          return callback(err);
-        }
-        this.fs.stat(resolvedPath, callback);
+    return this._resolvePath(path, (err, resolvedPath) => {
+      if (err) {
+        return callback(err);
       }
-    );
+      this.fs.stat(resolvedPath, callback);
+    });
   }
 
   statSync(path) {
@@ -127,15 +119,12 @@ class MergedFs extends EventEmitter {
   }
 
   lstat(path, callback) {
-    return this._resolvePath(
-      path,
-      (err, resolvedPath) => {
-        if (err) {
-          return callback(err);
-        }
-        this.fs.lstat(resolvedPath, callback);
+    return this._resolvePath(path, (err, resolvedPath) => {
+      if (err) {
+        return callback(err);
       }
-    );
+      this.fs.lstat(resolvedPath, callback);
+    });
   }
 
   mkdir(path, mode, callback) {
@@ -178,16 +167,14 @@ class MergedFs extends EventEmitter {
     let isExist = false;
     async.concat(
       this.devicesManager.getDevices().map((d) => join(d, relativePath)),
-      (item, done) => this.fs.readdir(
-        item,
-        (err, res) => {
+      (item, done) =>
+        this.fs.readdir(item, (err, res) => {
           if (err && err.code === CODES.ENOENT) {
             return done(null, []);
           }
           isExist = true;
           return done(err, res);
-        }
-      ),
+        }),
       (err, contents) => {
         if (!isExist) {
           return callback(createNotExistError(`Cannot read directory: "${relativePath}"`));
@@ -198,41 +185,43 @@ class MergedFs extends EventEmitter {
   }
 
   rename(oldPath, newPath, callback) {
-    async.waterfall([
-      (done) => this._resolvePath(oldPath, (oldPathErr) => done(oldPathErr)),
-      (done) => this._resolvePath(newPath, (newPathErr, newResolverPath, newStat) => {
-        if (!newPathErr && newStat.isDirectory()) { // path exists
-          return done(createError('Rename destination already exist', CODES.ENOTEMPTY));
-        }
-        return done();
-      }),
-      (done) => process.nextTick(() => done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath))),
-      (oldRelativePath, newRelativePath, done) => {
-        let isRenamed = false;
-        async.each(
-          this.devicesManager.getDevices(),
-          (dev, eachRenameDone) => this.fs.rename(
-            join(dev, oldRelativePath),
-            join(dev, newRelativePath),
+    async.waterfall(
+      [
+        (done) => this._resolvePath(oldPath, (oldPathErr) => done(oldPathErr)),
+        (done) =>
+          this._resolvePath(newPath, (newPathErr, newResolverPath, newStat) => {
+            if (!newPathErr && newStat.isDirectory()) {
+              // path exists
+              return done(createError('Rename destination already exist', CODES.ENOTEMPTY));
+            }
+            return done();
+          }),
+        (done) => process.nextTick(() => done(null, this._getRelativePath(oldPath), this._getRelativePath(newPath))),
+        (oldRelativePath, newRelativePath, done) => {
+          let isRenamed = false;
+          async.each(
+            this.devicesManager.getDevices(),
+            (dev, eachRenameDone) =>
+              this.fs.rename(join(dev, oldRelativePath), join(dev, newRelativePath), (renameErr) => {
+                if (renameErr && renameErr.code === CODES.ENOENT) {
+                  return eachRenameDone(null);
+                }
+                if (!renameErr) {
+                  isRenamed = true;
+                }
+                return eachRenameDone(renameErr);
+              }),
             (renameErr) => {
-              if (renameErr && renameErr.code === CODES.ENOENT) {
-                return eachRenameDone(null);
+              if (!isRenamed) {
+                return done(createNotExistError(`Cannot rename path: "${oldRelativePath}" -> "${newRelativePath}"`));
               }
-              if (!renameErr) {
-                isRenamed = true;
-              }
-              return eachRenameDone(renameErr);
+              return done(renameErr);
             }
-          ),
-          (renameErr) => {
-            if (!isRenamed) {
-              return done(createNotExistError(`Cannot rename path: "${oldRelativePath}" -> "${newRelativePath}"`));
-            }
-            return done(renameErr);
-          }
-        );
-      }
-    ], (err) => callback(err));
+          );
+        }
+      ],
+      (err) => callback(err)
+    );
   }
 
   rmdir(path, callback) {
@@ -241,16 +230,14 @@ class MergedFs extends EventEmitter {
     let isExist = false;
     async.each(
       this.devicesManager.getDevices().map((d) => join(d, relativePath)),
-      (item, done) => this.fs.rmdir(
-        item,
-        (err) => {
+      (item, done) =>
+        this.fs.rmdir(item, (err) => {
           if (err && err.code === CODES.ENOENT) {
             return done(null);
           }
           isExist = true;
           return done(err);
-        }
-      ),
+        }),
       (err) => {
         if (!isExist) {
           return callback(createNotExistError(`Cannot read directory: "${relativePath}"`));
@@ -269,9 +256,7 @@ class MergedFs extends EventEmitter {
     const relativePath = this._getRelativePath(path);
 
     async.tryEach(
-      this.devicesManager.getDevices().map(
-        (dev) => ((done) => this.fs.readFile(join(dev, relativePath), options, done))
-      ),
+      this.devicesManager.getDevices().map((dev) => (done) => this.fs.readFile(join(dev, relativePath), options, done)),
       callback
     );
   }
@@ -282,16 +267,14 @@ class MergedFs extends EventEmitter {
     let isExist = false;
     async.each(
       this.devicesManager.getDevices().map((dev) => join(dev, relativePath)),
-      (item, done) => this.fs.unlink(
-        item,
-        (err) => {
+      (item, done) =>
+        this.fs.unlink(item, (err) => {
           if (err && err.code === CODES.ENOENT) {
             return done(null);
           }
           isExist = true;
           return done(err);
-        }
-      ),
+        }),
       (err) => {
         if (!isExist) {
           return callback(createNotExistError(`Cannot remove file: "${relativePath}"`));
@@ -330,7 +313,8 @@ class MergedFs extends EventEmitter {
           }
 
           this._mkdirRecursive(dirname(resolvedPath), (mkdirErr) => {
-            if (mkdirErr && mkdirErr.code !== CODES.EEXIST) { // probably this device already contain this directory
+            if (mkdirErr && mkdirErr.code !== CODES.EEXIST) {
+              // probably this device already contain this directory
               return callback(mkdirErr);
             }
 
@@ -389,7 +373,8 @@ class MergedFs extends EventEmitter {
     try {
       this._mkdirRecursiveSync(dirname(resolvedPath));
     } catch (e) {
-      if (e.code !== CODES.EEXIST) { // probably this device already contain this directory
+      if (e.code !== CODES.EEXIST) {
+        // probably this device already contain this directory
         throw e;
       }
     }

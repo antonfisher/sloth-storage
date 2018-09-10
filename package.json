@@ -32,6 +32,8 @@
     "cover": "export NODE_ENV=test && istanbul cover _mocha -- --recursive ./tests",
     "coveralls": "npm run cover -- --report lcovonly && cat ./coverage/lcov.info | coveralls",
     "lint": "eslint --ignore-path .gitignore --ignore-pattern node_modules -- .",
+    "prettier": "prettier --ignore-path .gitignore --write './**/*.js'",
+    "format": "npm run prettier && npm run lint",
     "demo:local": "mkdir -p /tmp/t/d{1..3} && npm start -- --devices-path /tmp/t",
     "demo:local:watch": "watch -n 1 tree -a /tmp/t"
   },
@@ -44,11 +46,14 @@
     "coveralls": "3.0.2",
     "eslint": "5.5.0",
     "eslint-config-airbnb-base": "13.1.0",
+    "eslint-config-prettier": "2.9.0",
     "eslint-plugin-import": "2.14.0",
+    "eslint-plugin-prettier": "2.6.0",
     "expect.js": "0.3.1",
     "istanbul": "0.4.5",
     "mocha": "5.2.0",
     "mocha-lcov-reporter": "1.3.0",
+    "prettier": "1.14.2",
     "simple-mock": "0.8.0"
   }
 }

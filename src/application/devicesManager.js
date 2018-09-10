@@ -42,17 +42,11 @@ class DevicesManager extends EventEmitter {
   }
 
   _asyncFilterDirs(paths, done) {
-    return this.fs.stat(
-      paths,
-      (err, stat) => done(null, !err && stat.isDirectory())
-    );
+    return this.fs.stat(paths, (err, stat) => done(null, !err && stat.isDirectory()));
   }
 
   _asyncFilterNonExisting(paths, done) {
-    return this.fs.stat(
-      paths,
-      (err) => done(null, err && err.code === CODES.ENOENT)
-    );
+    return this.fs.stat(paths, (err) => done(null, err && err.code === CODES.ENOENT));
   }
 
   _getCapacity(callback) {
@@ -62,13 +56,16 @@ class DevicesManager extends EventEmitter {
         return callback(err);
       }
 
-      const stats = res.split('\n').slice(1).reduce((acc, item) => {
-        const [source, percent] = item.replace(/\s+/g, ' ').split(' ');
-        if (percent && source && source.startsWith('/dev/')) {
-          acc[source] = Number(percent.replace('%', '')) / 100;
-        }
-        return acc;
-      }, {});
+      const stats = res
+        .split('\n')
+        .slice(1)
+        .reduce((acc, item) => {
+          const [source, percent] = item.replace(/\s+/g, ' ').split(' ');
+          if (percent && source && source.startsWith('/dev/')) {
+            acc[source] = Number(percent.replace('%', '')) / 100;
+          }
+          return acc;
+        }, {});
 
       callback(err, stats);
     });
@@ -76,83 +73,86 @@ class DevicesManager extends EventEmitter {
 
   _lookupDevices() {
     //console.log('Look up devices start...');
-    async.waterfall([
-      (done) => this.fs.readdir(this.devicesPath, (err, files) => {
+    async.waterfall(
+      [
+        (done) =>
+          this.fs.readdir(this.devicesPath, (err, files) => {
+            if (err) {
+              return done(new Error(`Cannot read devices directory "${this.devicesPath}": ${err}`));
+            }
+            return done(null, files.map((fileName) => join(this.devicesPath, fileName)));
+          }),
+        //(done) => this.childProcess.exec('ls -la /dev/disk/by-path | grep usb | grep part', (err, res) => {
+        //  if (err) {
+        //    return done(new Error(`Fail to get device capacities: ${err}`));
+        //  }
+        //  const devicePaths = res.split('\n').reduce((acc, item) => {
+        //    const devices = item.split('../../');
+        //    if (devices[1]) {
+        //      acc.push(devices[1]);
+        //    }
+        //    return acc;
+        //  }, []);
+        //  console.log('## devicePaths', devicePaths);
+        //  done(null, devicePaths);
+        //}),
+        (filePaths, done) =>
+          async.filter(filePaths, this._asyncFilterDirs, (err, dirs) => {
+            if (!dirs.length) {
+              return done(new Error(`Fail to find any devices in "${this.devicesPath}"`));
+            }
+            return done(null, dirs.map((dir) => join(dir, this.storageDirName)));
+          }),
+        (storageDirs, done) =>
+          async.filter(storageDirs, this._asyncFilterNonExisting, (err, nonExistingStorageDirs) => {
+            const existingStorageDirs = storageDirs.filter((dir) => !nonExistingStorageDirs.includes(dir));
+            return done(null, existingStorageDirs, nonExistingStorageDirs);
+          }),
+        (existingStorageDirs, nonExistingStorageDirs, done) => {
+          const addedStorageDirs = [];
+          if (nonExistingStorageDirs.length > 0) {
+            async.each(
+              nonExistingStorageDirs,
+              (dir, mkdirDone) =>
+                this.fs.mkdir(dir, (mkdirErr) => {
+                  if (mkdirErr) {
+                    this.emit(
+                      DevicesManager.EVENTS.WARN,
+                      `Fail to create storage directory on "${dir}" device, skip it in list: ${mkdirErr}`
+                    );
+                  } else {
+                    addedStorageDirs.push(dir);
+                  }
+                  return mkdirDone(null);
+                }),
+              (err) => done(err, existingStorageDirs.concat(addedStorageDirs), addedStorageDirs)
+            );
+          } else {
+            return done(null, existingStorageDirs, addedStorageDirs);
+          }
+        }
+      ],
+      (err, devices, addedStorageDirs) => {
+        //console.log('Looked up devices:', err, devices, addedStorageDirs);
+
         if (err) {
-          return done(new Error(`Cannot read devices directory "${this.devicesPath}": ${err}`));
+          this.devices = [];
+          return this.emit(DevicesManager.EVENTS.ERROR, new Error(`Fail to process storage directories: ${err}`));
         }
-        return done(null, files.map((fileName) => join(this.devicesPath, fileName)));
-      }),
-      //(done) => this.childProcess.exec('ls -la /dev/disk/by-path | grep usb | grep part', (err, res) => {
-      //  if (err) {
-      //    return done(new Error(`Fail to get device capacities: ${err}`));
-      //  }
-      //  const devicePaths = res.split('\n').reduce((acc, item) => {
-      //    const devices = item.split('../../');
-      //    if (devices[1]) {
-      //      acc.push(devices[1]);
-      //    }
-      //    return acc;
-      //  }, []);
-      //  console.log('## devicePaths', devicePaths);
-      //  done(null, devicePaths);
-      //}),
-      (filePaths, done) => async.filter(filePaths, this._asyncFilterDirs, (err, dirs) => {
-        if (!dirs.length) {
-          return done(new Error(`Fail to find any devices in "${this.devicesPath}"`));
+
+        const removedStorageDirs = this.devices.filter((dev) => !devices.includes(dev));
+
+        this.devices = devices.sort();
+
+        if (this.devices.length > 0 && this.isInitLookup) {
+          this.isInitLookup = false;
+          this.emit(DevicesManager.EVENTS.READY, this.devices);
         }
-        return done(null, dirs.map((dir) => join(dir, this.storageDirName)));
-      }),
-      (storageDirs, done) => async.filter(
-        storageDirs,
-        this._asyncFilterNonExisting,
-        (err, nonExistingStorageDirs) => {
-          const existingStorageDirs = storageDirs.filter((dir) => !nonExistingStorageDirs.includes(dir));
-          return done(null, existingStorageDirs, nonExistingStorageDirs);
-        }
-      ),
-      (existingStorageDirs, nonExistingStorageDirs, done) => {
-        const addedStorageDirs = [];
-        if (nonExistingStorageDirs.length > 0) {
-          async.each(
-            nonExistingStorageDirs,
-            (dir, mkdirDone) => this.fs.mkdir(dir, (mkdirErr) => {
-              if (mkdirErr) {
-                this.emit(
-                  DevicesManager.EVENTS.WARN,
-                  `Fail to create storage directory on "${dir}" device, skip it in list: ${mkdirErr}`
-                );
-              } else {
-                addedStorageDirs.push(dir);
-              }
-              return mkdirDone(null);
-            }),
-            (err) => done(err, existingStorageDirs.concat(addedStorageDirs), addedStorageDirs)
-          );
-        } else {
-          return done(null, existingStorageDirs, addedStorageDirs);
-        }
+
+        removedStorageDirs.forEach((dir) => this.emit(DevicesManager.EVENTS.DEVICE_REMOVED, dir));
+        addedStorageDirs.forEach((dir) => this.emit(DevicesManager.EVENTS.DEVICE_ADDED, dir));
       }
-    ], (err, devices, addedStorageDirs) => {
-      //console.log('Looked up devices:', err, devices, addedStorageDirs);
-
-      if (err) {
-        this.devices = [];
-        return this.emit(DevicesManager.EVENTS.ERROR, new Error(`Fail to process storage directories: ${err}`));
-      }
-
-      const removedStorageDirs = this.devices.filter((dev) => !devices.includes(dev));
-
-      this.devices = devices.sort();
-
-      if (this.devices.length > 0 && this.isInitLookup) {
-        this.isInitLookup = false;
-        this.emit(DevicesManager.EVENTS.READY, this.devices);
-      }
-
-      removedStorageDirs.forEach((dir) => this.emit(DevicesManager.EVENTS.DEVICE_REMOVED, dir));
-      addedStorageDirs.forEach((dir) => this.emit(DevicesManager.EVENTS.DEVICE_ADDED, dir));
-    });
+    );
   }
 
   getDevicesPath() {

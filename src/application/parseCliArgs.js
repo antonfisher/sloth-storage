@@ -5,12 +5,7 @@ const DEFAULT_OPTION = {
   RPI: false
 };
 
-function parseCliArgs({
-  argv,
-  version,
-  description,
-  homepage
-}, callback) {
+function parseCliArgs({argv, version, description, homepage}, callback) {
   commander
     .description(`${description} (${homepage})`)
     .usage('[options]')

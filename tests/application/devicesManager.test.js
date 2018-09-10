@@ -245,13 +245,11 @@ describe('devicesManager', () => {
         exec(`rm -rf ./${testFsDir}/*`);
 
         setTimeout(() => {
-          expect(devicesManager.getDeviceForWriteSync.bind(devicesManager))
-            .to
-            .throwException((err) => {
-              expect(err).to.be.a(Error);
-              expect(err.message).to.contain('No devices for write');
-              done();
-            });
+          expect(devicesManager.getDeviceForWriteSync.bind(devicesManager)).to.throwException((err) => {
+            expect(err).to.be.a(Error);
+            expect(err.message).to.contain('No devices for write');
+            done();
+          });
         }, lookupInterval * 1.1);
       });
     });

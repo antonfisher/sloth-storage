@@ -12,7 +12,7 @@ const {CODES} = require('../../src/application/errorHelpers');
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
 const storageDirName = '.sloth-storage';
-const defaultMode = (0o777 & (~process.umask())).toString(8);
+const defaultMode = (0o777 & ~process.umask()).toString(8);
 
 let devicesManager;
 let mergedFs;
@@ -121,8 +121,7 @@ describe('mergedFs', () => {
     it('should throw an ENOENT error if path is not exist', () => {
       expect(mergedFs._resolvePathSync.bind(mergedFs))
         .withArgs('file-not-exist.txt')
-        .to
-        .throwException((e) => {
+        .to.throwException((e) => {
           expect(e).to.be.a(Error);
           expect(e).to.have.property('code', CODES.ENOENT);
         });
@@ -177,7 +176,7 @@ describe('mergedFs', () => {
         try {
           const stat = fs.statSync(path);
           expect(stat.isDirectory()).to.be(true);
-          expect(stat.mode.toString(8)).to.contain((mode & (~process.umask())).toString(8));
+          expect(stat.mode.toString(8)).to.contain((mode & ~process.umask()).toString(8));
           done();
         } catch (e) {
           done(e);
@@ -205,7 +204,8 @@ describe('mergedFs', () => {
       internalError.code = 'lol-code';
 
       const mockFs = require('fs'); //eslint-disable-line global-require
-      simple.mock(mockFs, 'mkdir')
+      simple
+        .mock(mockFs, 'mkdir')
         .callbackWith(enoentError)
         .callbackWith(internalError);
 
@@ -248,7 +248,7 @@ describe('mergedFs', () => {
 
       const stat = fs.statSync(path);
       expect(stat.isDirectory()).to.be(true);
-      expect(stat.mode.toString(8)).to.contain((mode & (~process.umask())).toString(8));
+      expect(stat.mode.toString(8)).to.contain((mode & ~process.umask()).toString(8));
     });
 
     it('should throw EEXIST error for an existing path', (done) => {
@@ -274,7 +274,8 @@ describe('mergedFs', () => {
       internalError.code = 'lol-code';
 
       const mockFs = require('fs'); //eslint-disable-line global-require
-      simple.mock(mockFs, 'mkdirSync')
+      simple
+        .mock(mockFs, 'mkdirSync')
         .throwWith(enoentError)
         .throwWith(internalError);
 
@@ -356,7 +357,7 @@ describe('mergedFs', () => {
               return done(err);
             } else if (result) {
               const stat = fs.statSync(join(result, dir));
-              expect(stat.mode.toString(8)).to.contain((mode & (~process.umask())).toString(8));
+              expect(stat.mode.toString(8)).to.contain((mode & ~process.umask()).toString(8));
               return done();
             }
 
@@ -366,7 +367,7 @@ describe('mergedFs', () => {
       });
     });
 
-    it('should return ENOENT if parent of second level directory doesn\'t exist', (done) => {
+    it("should return ENOENT if parent of second level directory doesn't exist", (done) => {
       mergedFs.mkdir(join('dir-not-exist', 'dir-new-4'), (err) => {
         expect(err).to.be.an(Error);
         expect(err).to.have.property('code', CODES.ENOENT);
@@ -585,7 +586,8 @@ describe('mergedFs', () => {
     });
   });
 
-  describe('#exists()', () => { // this method is deprecated in node v8
+  describe('#exists()', () => {
+    // this method is deprecated in node v8
     it('should return TRUE for existing file', (done) => {
       mergedFs.exists('file1.txt', (res) => {
         expect(res).to.be.an('boolean');
@@ -901,8 +903,7 @@ describe('mergedFs', () => {
     it('should return ENOENT error for non-existing file', (done) => {
       expect(mergedFs.createReadStream.bind(mergedFs))
         .withArgs('file-not-exist.txt')
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err).to.have.property('code', CODES.ENOENT);
           done();
@@ -912,8 +913,7 @@ describe('mergedFs', () => {
     it('should return ENOENT error for empty path', (done) => {
       expect(mergedFs.createReadStream.bind(mergedFs))
         .withArgs('')
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err).to.have.property('code', CODES.ENOENT);
           done();
@@ -985,8 +985,7 @@ describe('mergedFs', () => {
     it('should return EISFILE if destination contains a file in the path', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs(join('file2.txt', 'file-not-exist.txt'))
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err).to.have.property('code', 'EISFILE');
           done();
@@ -996,8 +995,7 @@ describe('mergedFs', () => {
     it('should return ENOENT error for non-existing directory', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs(join('dir-not-exist', 'file-not-exist.txt'))
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err).to.have.property('code', CODES.ENOENT);
           done();
@@ -1007,8 +1005,7 @@ describe('mergedFs', () => {
     it('should return ENOENT error for non-existing sub-directories', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs(join('dir-not-exist', 'dir-not-exist', 'file-not-exist.txt'))
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err).to.have.property('code', CODES.ENOENT);
           done();
@@ -1018,8 +1015,7 @@ describe('mergedFs', () => {
     it('should return ENOENT error for empty path', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs('')
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err).to.have.property('code', CODES.ENOENT);
           done();
@@ -1029,8 +1025,7 @@ describe('mergedFs', () => {
     it('should return EEXITS error if file already exist', (done) => {
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs('file1.txt')
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err).to.have.property('code', CODES.EEXIST);
           done();
@@ -1044,8 +1039,7 @@ describe('mergedFs', () => {
 
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs('new-file-2.txt')
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err.code).to.be(internalError.code);
         });
@@ -1058,8 +1052,7 @@ describe('mergedFs', () => {
 
       expect(mergedFs.createWriteStream.bind(mergedFs))
         .withArgs('new-file-3.txt')
-        .to
-        .throwException((err) => {
+        .to.throwException((err) => {
           expect(err).to.be.a(Error);
           expect(err.code).to.be(internalError.code);
         });
