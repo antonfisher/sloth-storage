@@ -23,7 +23,9 @@
     "test-watch": "mocha --inspect --watch tests",
     "cover": "export NODE_ENV=test && istanbul cover _mocha -- --recursive ./tests",
     "coveralls": "npm run cover -- --report lcovonly && cat ./coverage/lcov.info | coveralls",
-    "lint": "eslint --ignore-path .gitignore --ignore-pattern node_modules -- ."
+    "lint": "eslint --ignore-path .gitignore --ignore-pattern node_modules -- .",
+    "demo": "mkdir -p /tmp/t/d1 && mkdir -p /tmp/t/d2 && mkdir -p /tmp/t/d3 && npm start /tmp/t && npm start /tmp/t",
+    "demo:watch": "watch -n 1 tree -a /tmp/t"
   },
   "dependencies": {
     "async": "2.6.1",
