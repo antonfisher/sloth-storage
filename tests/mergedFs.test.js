@@ -948,7 +948,7 @@ describe('mergedFs', () => {
 
       try {
         const stream = mergedFs.createWriteStream(newFilePath);
-        stream.end(Buffer(content));
+        stream.end(Buffer.from(content));
         stream.on('finish', () => {
           mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
             expect(err).to.not.be.ok();

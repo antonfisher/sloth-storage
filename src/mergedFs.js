@@ -217,7 +217,8 @@ class MergedFs extends EventEmitter {
             (renameErr) => {
               if (renameErr && renameErr.code === CODES.ENOENT) {
                 return eachRenameDone(null);
-              } else if (!renameErr) {
+              }
+              if (!renameErr) {
                 isRenamed = true;
               }
               return eachRenameDone(renameErr);

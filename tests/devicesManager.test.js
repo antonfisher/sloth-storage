@@ -103,7 +103,12 @@ describe('devicesManager', () => {
         simple.restore();
         done('"warning" event hasn\'t been thrown');
       }, lookupInterval * 0.9);
-      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName, fs: mockFs});
+      devicesManager = new DevicesManager({
+        devicesPath: testFsPath,
+        lookupInterval,
+        storageDirName,
+        fs: mockFs
+      });
       devicesManager.on(DevicesManager.EVENTS.WARN, (err) => {
         clearTimeout(stoplookupInterval);
         expect(err).to.contain('Fail to create storage directory');
