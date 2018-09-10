@@ -5,7 +5,7 @@ branches:
   - docs
 language: node_js
 node_js:
-  - "8.2.1"
+  - "8.11.3"
 script:
   - npm run lint
   - npm test
