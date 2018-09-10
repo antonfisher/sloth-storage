@@ -2,7 +2,6 @@
 
 [![Build Status](https://travis-ci.org/antonfisher/sloth-storage.svg?branch=master)](https://travis-ci.org/antonfisher/sloth-storage)
 [![Coverage Status](https://coveralls.io/repos/github/antonfisher/sloth-storage/badge.svg?branch=master)](https://coveralls.io/github/antonfisher/sloth-storage?branch=master)
-[![bitHound Dependencies](https://www.bithound.io/github/antonfisher/sloth-storage/badges/dependencies.svg)](https://www.bithound.io/github/antonfisher/sloth-storage/master/dependencies/npm)
 [![GitHub license](https://img.shields.io/github/license/antonfisher/sloth-storage.svg)](https://github.com/antonfisher/sloth-storage/blob/master/LICENSE)
 
 ## Idea
