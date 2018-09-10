@@ -11,7 +11,7 @@ const {CODES} = require('../src/errorHelpers');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
-const storageDirName = '.slug-storage';
+const storageDirName = '.sloth-storage';
 const defaultMode = (0o777 & (~process.umask())).toString(8);
 
 let devicesManager;
@@ -19,12 +19,12 @@ let mergedFs;
 
 function createTestFs() {
   exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
-  exec(`mkdir -p ./${testFsDir}/dev1/.slug-storage/dir{1,2}`);
-  exec(`mkdir -p ./${testFsDir}/dev2/.slug-storage/dir{2,3}`);
-  exec(`touch ./${testFsDir}/dev1/.slug-storage/file1.txt`);
-  exec(`touch ./${testFsDir}/dev1/.slug-storage/dir1/file1-1.txt`);
-  exec(`echo 'content' > ./${testFsDir}/dev2/.slug-storage/file2.txt`);
-  exec(`ln -s ../file2.txt ./${testFsDir}/dev2/.slug-storage/dir3/link-file2.txt`);
+  exec(`mkdir -p ./${testFsDir}/dev1/.sloth-storage/dir{1,2}`);
+  exec(`mkdir -p ./${testFsDir}/dev2/.sloth-storage/dir{2,3}`);
+  exec(`touch ./${testFsDir}/dev1/.sloth-storage/file1.txt`);
+  exec(`touch ./${testFsDir}/dev1/.sloth-storage/dir1/file1-1.txt`);
+  exec(`echo 'content' > ./${testFsDir}/dev2/.sloth-storage/file2.txt`);
+  exec(`ln -s ../file2.txt ./${testFsDir}/dev2/.sloth-storage/dir3/link-file2.txt`);
 }
 
 function removeTestFs() {
@@ -87,7 +87,7 @@ describe('mergedFs', () => {
       mergedFs._resolvePath('file1.txt', (err, res) => {
         expect(err).to.not.be.ok();
         expect(res).to.be.a('string');
-        expect(res).to.be(`${testFsPath}/dev1/.slug-storage/file1.txt`);
+        expect(res).to.be(`${testFsPath}/dev1/.sloth-storage/file1.txt`);
         done(err);
       });
     });
@@ -115,7 +115,7 @@ describe('mergedFs', () => {
     it('should return path to file on device', () => {
       const resolvedPath = mergedFs._resolvePathSync('file1.txt');
 
-      expect(resolvedPath).to.be(`${testFsPath}/dev1/.slug-storage/file1.txt`);
+      expect(resolvedPath).to.be(`${testFsPath}/dev1/.sloth-storage/file1.txt`);
     });
 
     it('should throw an ENOENT error if path is not exist', () => {
@@ -138,7 +138,7 @@ describe('mergedFs', () => {
 
   describe('#_mkdirRecursive()', () => {
     it('should create 1-level directory', (done) => {
-      const path = join(testFsPath, 'dev1', '.slug-storage', 'a');
+      const path = join(testFsPath, 'dev1', '.sloth-storage', 'a');
       mergedFs._mkdirRecursive(path, (err) => {
         expect(err).to.not.be.ok();
         try {
@@ -153,7 +153,7 @@ describe('mergedFs', () => {
     });
 
     it('should create 2-level directory', (done) => {
-      const path = join(testFsPath, 'dev1', '.slug-storage', 'b', 'bb');
+      const path = join(testFsPath, 'dev1', '.sloth-storage', 'b', 'bb');
 
       mergedFs._mkdirRecursive(path, (err) => {
         expect(err).to.not.be.ok();
@@ -169,7 +169,7 @@ describe('mergedFs', () => {
     });
 
     it('should create 3-level directory with mode', (done) => {
-      const path = join(testFsPath, 'dev1', '.slug-storage', 'c', 'cc', 'ccc');
+      const path = join(testFsPath, 'dev1', '.sloth-storage', 'c', 'cc', 'ccc');
       const mode = 0o775;
 
       mergedFs._mkdirRecursive(path, mode, (err) => {
@@ -196,7 +196,7 @@ describe('mergedFs', () => {
     });
 
     it('should return error if failed to create new directory', (done) => {
-      const path = join(testFsPath, 'dev1', '.slug-storage', 'd', 'dd', 'ddd');
+      const path = join(testFsPath, 'dev1', '.sloth-storage', 'd', 'dd', 'ddd');
 
       const enoentError = new Error();
       enoentError.code = 'ENOENT';
@@ -221,7 +221,7 @@ describe('mergedFs', () => {
 
   describe('#_mkdirRecursiveSync()', () => {
     it('should create 1-level directory', () => {
-      const path = join(testFsPath, 'dev1', '.slug-storage', 'a');
+      const path = join(testFsPath, 'dev1', '.sloth-storage', 'a');
 
       mergedFs._mkdirRecursiveSync(path);
 
@@ -231,7 +231,7 @@ describe('mergedFs', () => {
     });
 
     it('should create 2-level directory', () => {
-      const path = join(testFsPath, 'dev1', '.slug-storage', 'b', 'bb');
+      const path = join(testFsPath, 'dev1', '.sloth-storage', 'b', 'bb');
 
       mergedFs._mkdirRecursiveSync(path);
 
@@ -241,7 +241,7 @@ describe('mergedFs', () => {
     });
 
     it('should create 3-level directory with mode', () => {
-      const path = join(testFsPath, 'dev1', '.slug-storage', 'c', 'cc', 'ccc');
+      const path = join(testFsPath, 'dev1', '.sloth-storage', 'c', 'cc', 'ccc');
       const mode = 0o775;
 
       mergedFs._mkdirRecursiveSync(path, mode);
@@ -265,7 +265,7 @@ describe('mergedFs', () => {
     });
 
     it('should throw error if failed to create new directory', (done) => {
-      const path = join(testFsPath, 'dev1', '.slug-storage', 'd', 'dd', 'ddd');
+      const path = join(testFsPath, 'dev1', '.sloth-storage', 'd', 'dd', 'ddd');
 
       const enoentError = new Error();
       enoentError.code = 'ENOENT';

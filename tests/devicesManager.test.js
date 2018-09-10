@@ -7,7 +7,7 @@ const DevicesManager = require('../src/devicesManager');
 
 const testFsDir = 'testfs';
 const testFsPath = join(process.cwd(), testFsDir);
-const storageDirName = '.slug-storage';
+const storageDirName = '.sloth-storage';
 
 describe('devicesManager', () => {
   describe('Constructor', () => {

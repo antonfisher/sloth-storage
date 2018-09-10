@@ -1,9 +1,9 @@
-# slug-storage
+# sloth-storage
 
-[![Build Status](https://travis-ci.org/antonfisher/slug-storage.svg?branch=master)](https://travis-ci.org/antonfisher/slug-storage)
-[![Coverage Status](https://coveralls.io/repos/github/antonfisher/slug-storage/badge.svg?branch=master)](https://coveralls.io/github/antonfisher/slug-storage?branch=master)
-[![bitHound Dependencies](https://www.bithound.io/github/antonfisher/slug-storage/badges/dependencies.svg)](https://www.bithound.io/github/antonfisher/slug-storage/master/dependencies/npm)
-[![GitHub license](https://img.shields.io/github/license/antonfisher/slug-storage.svg)](https://github.com/antonfisher/slug-storage/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/antonfisher/sloth-storage.svg?branch=master)](https://travis-ci.org/antonfisher/sloth-storage)
+[![Coverage Status](https://coveralls.io/repos/github/antonfisher/sloth-storage/badge.svg?branch=master)](https://coveralls.io/github/antonfisher/sloth-storage?branch=master)
+[![bitHound Dependencies](https://www.bithound.io/github/antonfisher/sloth-storage/badges/dependencies.svg)](https://www.bithound.io/github/antonfisher/sloth-storage/master/dependencies/npm)
+[![GitHub license](https://img.shields.io/github/license/antonfisher/sloth-storage.svg)](https://github.com/antonfisher/sloth-storage/blob/master/LICENSE)
 
 ## Idea
 The idea is to build drive distributed storage system with FTP interface on Node.js.

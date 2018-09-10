@@ -7,7 +7,7 @@ const async = require('async');
 const mathUtils = require('./mathUtils');
 const {CODES} = require('./errorHelpers');
 
-const DEFAULT_STORAGE_DIR_NAME = '.slug-storage';
+const DEFAULT_STORAGE_DIR_NAME = '.sloth-storage';
 const DEFAULT_LOOK_FOR_INTERVAL = 5 * 1000;
 
 class DevicesManager extends EventEmitter {
