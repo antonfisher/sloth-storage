@@ -6,6 +6,8 @@ const DevicesManager = require('./application/devicesManager');
 const MergedFs = require('./application/mergedFs');
 const parseCliArgs = require('./application/parseCliArgs');
 
+//TODO add winston
+
 const ftpServerOptions = {
   host: process.env.IP || '127.0.0.1',
   port: process.env.PORT || 7002,
@@ -22,7 +24,11 @@ parseCliArgs(
   (cliOptions) => {
     let devicesPath = null;
 
-    if (cliOptions.devicesPath) {
+    if (cliOptions.usb && cliOptions.devicesPath) {
+      throw new Error('"usb" and "devicesPath" options cannot be used together');
+    } else if (!cliOptions.usb && !cliOptions.devicesPath) {
+      throw new Error('ether "usb" or "devicesPath" option should be specified');
+    } else if (cliOptions.devicesPath) {
       devicesPath =
         cliOptions.devicesPath[0] === '/' ? cliOptions.devicesPath : join(process.cwd(), cliOptions.devicesPath);
     }

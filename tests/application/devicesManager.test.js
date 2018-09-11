@@ -10,18 +10,18 @@ const testFsPath = join(process.cwd(), testFsDir);
 const storageDirName = '.sloth-storage';
 
 describe('devicesManager', () => {
-  describe('Constructor', () => {
-    it('should throw an error if "devicePath" is undefined', (done) => {
-      try {
-        const devicesManager = new DevicesManager();
-        done(`No error was thrown: "${devicesManager.getDevicesPath()}"`);
-      } catch (e) {
-        expect(e).to.be.an(Error);
-        expect(e.message).to.contain('devicesPath');
-        done();
-      }
-    });
-  });
+  //describe('Constructor', () => {
+  //  it('should throw an error if "devicePath" is undefined', (done) => {
+  //    try {
+  //      const devicesManager = new DevicesManager();
+  //      done(`No error was thrown: "${devicesManager.getDevicesPath()}"`);
+  //    } catch (e) {
+  //      expect(e).to.be.an(Error);
+  //      expect(e.message).to.contain('devicesPath');
+  //      done();
+  //    }
+  //  });
+  //});
 
   describe('Initialization', () => {
     let devicesManager;
@@ -119,22 +119,23 @@ describe('devicesManager', () => {
       });
     });
 
-    it('should emit "error" event if there are no directories in devices path', (done) => {
-      exec(`mkdir -p ./${testFsDir}/empty`);
-      const lookupInterval = 1000;
-      const emptyPath = join(testFsPath, 'empty');
-      const stoplookupInterval = setTimeout(() => {
-        done('"error" event hasn\'t been thrown');
-      }, lookupInterval * 0.9);
-      devicesManager = new DevicesManager({devicesPath: emptyPath, lookupInterval, storageDirName});
-      devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
-        clearTimeout(stoplookupInterval);
-        expect(e).to.be.an(Error);
-        expect(e.message).to.contain('Fail to find any devices');
-        expect(e.message).to.contain(emptyPath);
-        done();
-      });
-    });
+    //TODO should wait until devices appear
+    //it('should emit "error" event if there are no directories in devices path', (done) => {
+    //  exec(`mkdir -p ./${testFsDir}/empty`);
+    //  const lookupInterval = 1000;
+    //  const emptyPath = join(testFsPath, 'empty');
+    //  const stoplookupInterval = setTimeout(() => {
+    //    done('"error" event hasn\'t been thrown');
+    //  }, lookupInterval * 0.9);
+    //  devicesManager = new DevicesManager({devicesPath: emptyPath, lookupInterval, storageDirName});
+    //  devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
+    //    clearTimeout(stoplookupInterval);
+    //    expect(e).to.be.an(Error);
+    //    expect(e.message).to.contain('Fail to find any devices');
+    //    expect(e.message).to.contain(emptyPath);
+    //    done();
+    //  });
+    //});
 
     it('should emit "error" event for non-existing devices path', (done) => {
       const lookupInterval = 100;
@@ -210,20 +211,21 @@ describe('devicesManager', () => {
         });
       });
 
-      it('should return an error if no devices exist', (done) => {
-        devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
-          //skip;
-        });
-        exec(`rm -rf ./${testFsDir}/*`);
-
-        setTimeout(() => {
-          devicesManager.getDeviceForWrite((err) => {
-            expect(err).to.be.a(Error);
-            expect(err.message).to.contain('No devices for write');
-            done();
-          });
-        }, lookupInterval * 1.1);
-      });
+      //TODO should wait until devices appear
+      //it('should return an error if no devices exist', (done) => {
+      //  devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
+      //    //skip;
+      //  });
+      //  exec(`rm -rf ./${testFsDir}/*`);
+      //
+      //  setTimeout(() => {
+      //    devicesManager.getDeviceForWrite((err) => {
+      //      expect(err).to.be.a(Error);
+      //      expect(err.message).to.contain('No devices for write');
+      //      done();
+      //    });
+      //  }, lookupInterval * 1.1);
+      //});
     });
 
     describe('#getDeviceForWriteSync()', () => {
@@ -238,20 +240,21 @@ describe('devicesManager', () => {
         }
       });
 
-      it('should throw an error return null if no devices exist', (done) => {
-        devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
-          //skip;
-        });
-        exec(`rm -rf ./${testFsDir}/*`);
-
-        setTimeout(() => {
-          expect(devicesManager.getDeviceForWriteSync.bind(devicesManager)).to.throwException((err) => {
-            expect(err).to.be.a(Error);
-            expect(err.message).to.contain('No devices for write');
-            done();
-          });
-        }, lookupInterval * 1.1);
-      });
+      //TODO should wait until devices appear
+      //it('should throw an error return null if no devices exist', (done) => {
+      //  devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
+      //    //skip;
+      //  });
+      //  exec(`rm -rf ./${testFsDir}/*`);
+      //
+      //  setTimeout(() => {
+      //    expect(devicesManager.getDeviceForWriteSync.bind(devicesManager)).to.throwException((err) => {
+      //      expect(err).to.be.a(Error);
+      //      expect(err.message).to.contain('No devices for write');
+      //      done();
+      //    });
+      //  }, lookupInterval * 1.1);
+      //});
     });
 
     xdescribe('#_getCapacity()', () => {

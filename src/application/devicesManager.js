@@ -10,6 +10,19 @@ const {CODES} = require('./errorHelpers');
 const DEFAULT_STORAGE_DIR_NAME = '.sloth-storage';
 const DEFAULT_LOOK_FOR_INTERVAL = 5 * 1000;
 
+class NoDevicesFoundWarning extends Error {
+  constructor(devicesPath) {
+    super(`storage is not ready to operate, fail to find any devices in "${devicesPath}"`);
+  }
+}
+
+/**
+ * @param {String}        devicesPath     path of folders to use as devices, null to discover usb drives
+ * @param {Number}        lookupInterval  interval to check if a new device appeared
+ * @param {String}        storageDirName  direcotry name to create on device to store application data
+ * @param {child_process} childProcess    link to nodejs child_process module
+ * @param {fs}            fs              link to nodejs fs module
+ */
 class DevicesManager extends EventEmitter {
   constructor({
     devicesPath,
@@ -19,13 +32,6 @@ class DevicesManager extends EventEmitter {
     fs = defaultNodeFs
   } = {}) {
     super();
-
-    if (!devicesPath) {
-      throw new Error('No "devicesPath" parameter specified');
-    }
-
-    //TODO logger
-    //console.log(`MergedFs devices path: ${devsPath}`);
 
     this.devicesPath = devicesPath;
     this.storageDirName = storageDirName;
@@ -72,7 +78,7 @@ class DevicesManager extends EventEmitter {
   }
 
   _lookupDevices() {
-    //console.log('Look up devices start...');
+    //console.log('Look up for devices...');
     async.waterfall(
       [
         (done) =>
@@ -82,24 +88,25 @@ class DevicesManager extends EventEmitter {
             }
             return done(null, files.map((fileName) => join(this.devicesPath, fileName)));
           }),
-        //(done) => this.childProcess.exec('ls -la /dev/disk/by-path | grep usb | grep part', (err, res) => {
-        //  if (err) {
-        //    return done(new Error(`Fail to get device capacities: ${err}`));
-        //  }
-        //  const devicePaths = res.split('\n').reduce((acc, item) => {
-        //    const devices = item.split('../../');
-        //    if (devices[1]) {
-        //      acc.push(devices[1]);
+        //(done) =>
+        //  this.childProcess.exec('ls -la /dev/disk/by-path | grep usb | grep part', (err, res) => {
+        //    if (err) {
+        //      return done(new Error(`Fail to get device capacities: ${err}`));
         //    }
-        //    return acc;
-        //  }, []);
-        //  console.log('## devicePaths', devicePaths);
-        //  done(null, devicePaths);
-        //}),
+        //    const devicePaths = res.split('\n').reduce((acc, item) => {
+        //      const devices = item.split('../../');
+        //      if (devices[1]) {
+        //        acc.push(devices[1]);
+        //      }
+        //      return acc;
+        //    }, []);
+        //    console.log('## devicePaths', devicePaths);
+        //    done(null, devicePaths);
+        //  }),
         (filePaths, done) =>
           async.filter(filePaths, this._asyncFilterDirs, (err, dirs) => {
             if (!dirs.length) {
-              return done(new Error(`Fail to find any devices in "${this.devicesPath}"`));
+              return done(new NoDevicesFoundWarning(this.devicesPath));
             }
             return done(null, dirs.map((dir) => join(dir, this.storageDirName)));
           }),
@@ -135,7 +142,11 @@ class DevicesManager extends EventEmitter {
       (err, devices, addedStorageDirs) => {
         //console.log('Looked up devices:', err, devices, addedStorageDirs);
 
-        if (err) {
+        if (err instanceof NoDevicesFoundWarning) {
+          //TODO logger
+          //logger.warn(err);
+          return null;
+        } else if (err) {
           this.devices = [];
           return this.emit(DevicesManager.EVENTS.ERROR, new Error(`Fail to process storage directories: ${err}`));
         }
