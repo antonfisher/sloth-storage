@@ -10,18 +10,18 @@ const testFsPath = join(process.cwd(), testFsDir);
 const storageDirName = '.sloth-storage';
 
 describe('devicesManager', () => {
-  //describe('Constructor', () => {
-  //  it('should throw an error if "devicePath" is undefined', (done) => {
-  //    try {
-  //      const devicesManager = new DevicesManager();
-  //      done(`No error was thrown: "${devicesManager.getDevicesPath()}"`);
-  //    } catch (e) {
-  //      expect(e).to.be.an(Error);
-  //      expect(e.message).to.contain('devicesPath');
-  //      done();
-  //    }
-  //  });
-  //});
+  describe('Constructor', () => {
+    it('should throw an error if "devicePath" is undefined', (done) => {
+      try {
+        const devicesManager = new DevicesManager();
+        done(`No error was thrown: "${devicesManager.getDevicesPath()}"`);
+      } catch (e) {
+        expect(e).to.be.an(Error);
+        expect(e.message).to.contain('devicesPath');
+        done();
+      }
+    });
+  });
 
   describe('Initialization', () => {
     let devicesManager;

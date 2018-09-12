@@ -24,16 +24,15 @@ parseCliArgs(
   (cliOptions) => {
     let devicesPath = null;
 
-    if (cliOptions.usb && cliOptions.devicesPath) {
-      throw new Error('"usb" and "devicesPath" options cannot be used together');
-    } else if (!cliOptions.usb && !cliOptions.devicesPath) {
-      throw new Error('ether "usb" or "devicesPath" option should be specified');
-    } else if (cliOptions.devicesPath) {
+    if (cliOptions.devicesPath) {
       devicesPath =
         cliOptions.devicesPath[0] === '/' ? cliOptions.devicesPath : join(process.cwd(), cliOptions.devicesPath);
+      console.log(`Lookup for storage devices in this path: ${devicesPath}`);
+    } else {
+      //TODO to separated method
+      devicesPath = join('/media', process.env.USER); // default ubuntu path for mount media devices
+      console.log(`Lookup for storage devices in this path: ${devicesPath} (auto discovered Ubuntu media folder)`);
     }
-
-    console.log(`Used devices path: ${devicesPath || 'auto discover usb devices'}`);
 
     const devicesManager = new DevicesManager({devicesPath});
     const mergedFs = new MergedFs({devicesManager});

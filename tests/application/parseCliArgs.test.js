@@ -20,20 +20,6 @@ describe('#parseCliArgs()', () => {
       );
     });
 
-    it('"usb" should be false', (done) => {
-      parseCliArgs(
-        {
-          argv: defaultNpmStartArgv
-        },
-        (options) => {
-          expect(options).to.be.an('object');
-          expect(options).to.have.key('usb');
-          expect(options.rpi).to.be(false);
-          done();
-        }
-      );
-    });
-
     it('"rpi" should be false', (done) => {
       parseCliArgs(
         {
@@ -78,34 +64,6 @@ describe('#parseCliArgs()', () => {
       );
     });
 
-    it('"usb" should be true (short)', (done) => {
-      parseCliArgs(
-        {
-          argv: [...defaultNpmStartArgv, '-U']
-        },
-        (options) => {
-          expect(options).to.be.an('object');
-          expect(options).to.have.key('usb');
-          expect(options.usb).to.be(true);
-          done();
-        }
-      );
-    });
-
-    it('"usb" should be true (long)', (done) => {
-      parseCliArgs(
-        {
-          argv: [...defaultNpmStartArgv, '--usb']
-        },
-        (options) => {
-          expect(options).to.be.an('object');
-          expect(options).to.have.key('usb');
-          expect(options.usb).to.be(true);
-          done();
-        }
-      );
-    });
-
     it('"rpi" should be true (short)', (done) => {
       parseCliArgs(
         {
@@ -136,17 +94,15 @@ describe('#parseCliArgs()', () => {
   });
 
   describe('check all params were passed', () => {
-    it('"devicePath" should be "/tmp", "usb"/"rpi" should be true', (done) => {
+    it('"devicePath" should be "/tmp", "rpi" should be true', (done) => {
       parseCliArgs(
         {
-          argv: [...defaultNpmStartArgv, '--devices-path', '/tmp', '--rpi', '--usb']
+          argv: [...defaultNpmStartArgv, '--devices-path', '/tmp', '--rpi']
         },
         (options) => {
           expect(options).to.be.an('object');
           expect(options).to.have.key('devicesPath');
           expect(options.devicesPath).to.be('/tmp');
-          expect(options).to.have.key('usb');
-          expect(options.usb).to.be(true);
           expect(options).to.have.key('rpi');
           expect(options.rpi).to.be(true);
           done();

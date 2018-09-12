@@ -33,6 +33,10 @@ class DevicesManager extends EventEmitter {
   } = {}) {
     super();
 
+    if (!devicesPath) {
+      throw new Error('No "devicesPath" parameter specified');
+    }
+
     this.devicesPath = devicesPath;
     this.storageDirName = storageDirName;
     this.childProcess = childProcess;
@@ -56,6 +60,7 @@ class DevicesManager extends EventEmitter {
   }
 
   _getCapacity(callback) {
+    //ls -la /dev/disk/by-uuid/; df
     this.childProcess.exec('df --output=source,pcent', (err, res) => {
       if (err) {
         this.emit(DevicesManager.EVENTS.WARN, `Fail to get device capacities: ${err}`);
@@ -89,7 +94,7 @@ class DevicesManager extends EventEmitter {
             return done(null, files.map((fileName) => join(this.devicesPath, fileName)));
           }),
         //(done) =>
-        //  this.childProcess.exec('ls -la /dev/disk/by-path | grep usb | grep part', (err, res) => {
+        //  this.childProcess.exec('ls -la /dev/disk/by-path | grep usb | grep part | cat', (err, res) => {
         //    if (err) {
         //      return done(new Error(`Fail to get device capacities: ${err}`));
         //    }
