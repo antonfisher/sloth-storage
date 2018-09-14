@@ -40,7 +40,9 @@
   "dependencies": {
     "async": "2.6.1",
     "commander": "2.18.0",
-    "ftpd": "git+https://github.com/nodeftpd/nodeftpd.git"
+    "fast-safe-stringify": "2.0.6",
+    "ftpd": "git+https://github.com/nodeftpd/nodeftpd.git",
+    "winston": "3.1.0"
   },
   "devDependencies": {
     "coveralls": "3.0.2",

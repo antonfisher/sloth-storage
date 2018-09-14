@@ -32,11 +32,11 @@ function removeTestFs() {
 }
 
 describe('mergedFs', () => {
-  const lookupInterval = 100;
+  const lookupDevicesInterval = 100;
 
   beforeEach((done) => {
     createTestFs();
-    devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
+    devicesManager = new DevicesManager({devicesPath: testFsPath, lookupDevicesInterval, storageDirName});
     //devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
     //devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
     devicesManager.on(DevicesManager.EVENTS.READY, () => {

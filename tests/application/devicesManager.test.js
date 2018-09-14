@@ -39,8 +39,8 @@ describe('devicesManager', () => {
     });
 
     it('should emit "deviceAdded" event', (done) => {
-      const lookupInterval = 100;
-      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
+      const lookupDevicesInterval = 100;
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupDevicesInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
@@ -57,8 +57,8 @@ describe('devicesManager', () => {
     });
 
     it('should emit "deviceRemoved" event', (done) => {
-      const lookupInterval = 100;
-      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
+      const lookupDevicesInterval = 100;
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupDevicesInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
@@ -75,8 +75,8 @@ describe('devicesManager', () => {
     });
 
     it('should find new device', (done) => {
-      const lookupInterval = 100;
-      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
+      const lookupDevicesInterval = 100;
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupDevicesInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
         expect(devicesManager.getDevices()).to.be.an('array');
         expect(devicesManager.getDevices()).to.have.length(2);
@@ -90,27 +90,27 @@ describe('devicesManager', () => {
           expect(devicesManager.getDevices()).to.have.length(3);
           expect(devicesManager.getDevices()).to.contain(join(testFsPath, 'dev3', storageDirName));
           done();
-        }, lookupInterval * 1.1);
+        }, lookupDevicesInterval * 1.1);
       });
     });
 
     it('should emit "warning" event if failed to create storage directory on a devices', (done) => {
       const mockFs = require('fs'); //eslint-disable-line global-require
-      const lookupInterval = 1000;
+      const lookupDevicesInterval = 1000;
       simple.mock(mockFs, 'mkdir').callbackWith('lol-warn');
       exec(`rm -rf ./${testFsDir}/dev1/${storageDirName}`);
-      const stoplookupInterval = setTimeout(() => {
+      const stoplookupDevicesInterval = setTimeout(() => {
         simple.restore();
         done('"warning" event hasn\'t been thrown');
-      }, lookupInterval * 0.9);
+      }, lookupDevicesInterval * 0.9);
       devicesManager = new DevicesManager({
         devicesPath: testFsPath,
-        lookupInterval,
+        lookupDevicesInterval,
         storageDirName,
         fs: mockFs
       });
       devicesManager.on(DevicesManager.EVENTS.WARN, (err) => {
-        clearTimeout(stoplookupInterval);
+        clearTimeout(stoplookupDevicesInterval);
         expect(err).to.contain('Fail to create storage directory');
         expect(err).to.contain(`${testFsDir}/dev1`);
         expect(err).to.contain('lol-warn');
@@ -122,14 +122,14 @@ describe('devicesManager', () => {
     //TODO should wait until devices appear
     //it('should emit "error" event if there are no directories in devices path', (done) => {
     //  exec(`mkdir -p ./${testFsDir}/empty`);
-    //  const lookupInterval = 1000;
+    //  const lookupDevicesInterval = 1000;
     //  const emptyPath = join(testFsPath, 'empty');
-    //  const stoplookupInterval = setTimeout(() => {
+    //  const stoplookupDevicesInterval = setTimeout(() => {
     //    done('"error" event hasn\'t been thrown');
-    //  }, lookupInterval * 0.9);
-    //  devicesManager = new DevicesManager({devicesPath: emptyPath, lookupInterval, storageDirName});
+    //  }, lookupDevicesInterval * 0.9);
+    //  devicesManager = new DevicesManager({devicesPath: emptyPath, lookupDevicesInterval, storageDirName});
     //  devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
-    //    clearTimeout(stoplookupInterval);
+    //    clearTimeout(stoplookupDevicesInterval);
     //    expect(e).to.be.an(Error);
     //    expect(e.message).to.contain('Fail to find any devices');
     //    expect(e.message).to.contain(emptyPath);
@@ -138,14 +138,14 @@ describe('devicesManager', () => {
     //});
 
     it('should emit "error" event for non-existing devices path', (done) => {
-      const lookupInterval = 100;
+      const lookupDevicesInterval = 100;
       const nonExistingPath = '/not-exist';
-      const stoplookupInterval = setTimeout(() => {
+      const stoplookupDevicesInterval = setTimeout(() => {
         done('"error" event hasn\'t been thrown');
-      }, lookupInterval * 0.9);
-      devicesManager = new DevicesManager({devicesPath: nonExistingPath, lookupInterval, storageDirName});
+      }, lookupDevicesInterval * 0.9);
+      devicesManager = new DevicesManager({devicesPath: nonExistingPath, lookupDevicesInterval, storageDirName});
       devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
-        clearTimeout(stoplookupInterval);
+        clearTimeout(stoplookupDevicesInterval);
         expect(e).to.be.an(Error);
         expect(e.message).to.contain('Cannot read devices directory');
         expect(e.message).to.contain('ENOENT');
@@ -157,12 +157,12 @@ describe('devicesManager', () => {
 
   describe('Runtime methods', () => {
     let devicesManager;
-    const lookupInterval = 100;
+    const lookupDevicesInterval = 100;
 
     beforeEach((done) => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
 
-      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupInterval, storageDirName});
+      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupDevicesInterval, storageDirName});
       //devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
       //devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
       devicesManager.on(DevicesManager.EVENTS.READY, () => done());
@@ -224,7 +224,7 @@ describe('devicesManager', () => {
       //      expect(err.message).to.contain('No devices for write');
       //      done();
       //    });
-      //  }, lookupInterval * 1.1);
+      //  }, lookupDevicesInterval * 1.1);
       //});
     });
 
@@ -253,7 +253,7 @@ describe('devicesManager', () => {
       //      expect(err.message).to.contain('No devices for write');
       //      done();
       //    });
-      //  }, lookupInterval * 1.1);
+      //  }, lookupDevicesInterval * 1.1);
       //});
     });
 
