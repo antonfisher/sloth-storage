@@ -174,7 +174,8 @@ class DevicesManager extends EventEmitter {
       ],
       (err, existingDevices, addededDevices) => {
         if (err instanceof NoDevicesFoundWarning) {
-          this.emit(DevicesManager.EVENTS.WARN, `Fail to get device capacities: ${err.toString()}`);
+          this.emit(DevicesManager.EVENTS.WARN, err.toString());
+          this.devices = [];
           return null;
         } else if (err) {
           this.devices = [];

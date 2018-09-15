@@ -119,23 +119,21 @@ describe('devicesManager', () => {
       });
     });
 
-    //TODO should wait until devices appear
-    //it('should emit "error" event if there are no directories in devices path', (done) => {
-    //  exec(`mkdir -p ./${testFsDir}/empty`);
-    //  const lookupDevicesInterval = 1000;
-    //  const emptyPath = join(testFsPath, 'empty');
-    //  const stoplookupDevicesInterval = setTimeout(() => {
-    //    done('"error" event hasn\'t been thrown');
-    //  }, lookupDevicesInterval * 0.9);
-    //  devicesManager = new DevicesManager({devicesPath: emptyPath, lookupDevicesInterval, storageDirName});
-    //  devicesManager.on(DevicesManager.EVENTS.ERROR, (e) => {
-    //    clearTimeout(stoplookupDevicesInterval);
-    //    expect(e).to.be.an(Error);
-    //    expect(e.message).to.contain('Fail to find any devices');
-    //    expect(e.message).to.contain(emptyPath);
-    //    done();
-    //  });
-    //});
+    it('should emit "warn" event if there are no directories in devices path', (done) => {
+      exec(`mkdir -p ./${testFsDir}/empty`);
+      const lookupDevicesInterval = 1000;
+      const emptyPath = join(testFsPath, 'empty');
+      const stoplookupDevicesInterval = setTimeout(() => {
+        done('"warn" event hasn\'t been thrown');
+      }, lookupDevicesInterval * 0.9);
+      devicesManager = new DevicesManager({devicesPath: emptyPath, lookupDevicesInterval, storageDirName});
+      devicesManager.on(DevicesManager.EVENTS.WARN, (message) => {
+        clearTimeout(stoplookupDevicesInterval);
+        expect(message).to.contain('fail to find any devices');
+        expect(message).to.contain(emptyPath);
+        done();
+      });
+    });
 
     it('should emit "error" event for non-existing devices path', (done) => {
       const lookupDevicesInterval = 100;
@@ -211,21 +209,16 @@ describe('devicesManager', () => {
         });
       });
 
-      //TODO should wait until devices appear
-      //it('should return an error if no devices exist', (done) => {
-      //  devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
-      //    //skip;
-      //  });
-      //  exec(`rm -rf ./${testFsDir}/*`);
-      //
-      //  setTimeout(() => {
-      //    devicesManager.getDeviceForWrite((err) => {
-      //      expect(err).to.be.a(Error);
-      //      expect(err.message).to.contain('No devices for write');
-      //      done();
-      //    });
-      //  }, lookupDevicesInterval * 1.1);
-      //});
+      it('should return an error if no devices exist', (done) => {
+        exec(`rm -rf ./${testFsDir}/*`);
+
+        setTimeout(() => {
+          devicesManager.getDeviceForWrite((err, dev) => {
+            expect(err.message).to.contain('No devices for write');
+            done();
+          });
+        }, lookupDevicesInterval * 1.1);
+      });
     });
 
     describe('#getDeviceForWriteSync()', () => {
@@ -240,21 +233,17 @@ describe('devicesManager', () => {
         }
       });
 
-      //TODO should wait until devices appear
-      //it('should throw an error return null if no devices exist', (done) => {
-      //  devicesManager.on(DevicesManager.EVENTS.ERROR, () => {
-      //    //skip;
-      //  });
-      //  exec(`rm -rf ./${testFsDir}/*`);
-      //
-      //  setTimeout(() => {
-      //    expect(devicesManager.getDeviceForWriteSync.bind(devicesManager)).to.throwException((err) => {
-      //      expect(err).to.be.a(Error);
-      //      expect(err.message).to.contain('No devices for write');
-      //      done();
-      //    });
-      //  }, lookupDevicesInterval * 1.1);
-      //});
+      it('should throw an error return null if no devices exist', (done) => {
+        exec(`rm -rf ./${testFsDir}/*`);
+
+        setTimeout(() => {
+          expect(devicesManager.getDeviceForWriteSync.bind(devicesManager)).to.throwException((err) => {
+            expect(err).to.be.a(Error);
+            expect(err.message).to.contain('No devices for write');
+            done();
+          });
+        }, lookupDevicesInterval * 1.1);
+      });
     });
 
     xdescribe('#_getCapacity()', () => {
