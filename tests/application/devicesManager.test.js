@@ -156,11 +156,17 @@ describe('devicesManager', () => {
   describe('Runtime methods', () => {
     let devicesManager;
     const lookupDevicesInterval = 100;
+    const calculateCapacityInterval = 100;
 
     beforeEach((done) => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
 
-      devicesManager = new DevicesManager({devicesPath: testFsPath, lookupDevicesInterval, storageDirName});
+      devicesManager = new DevicesManager({
+        devicesPath: testFsPath,
+        lookupDevicesInterval,
+        calculateCapacityInterval,
+        storageDirName
+      });
       //devicesManager.on(DevicesManager.EVENTS.WARN, message => console.log(`WARN: ${message}`));
       //devicesManager.on(DevicesManager.EVENTS.ERROR, message => console.log(`ERROR: ${message}`));
       devicesManager.on(DevicesManager.EVENTS.READY, () => done());
@@ -246,9 +252,76 @@ describe('devicesManager', () => {
       });
     });
 
-    xdescribe('#_getCapacity()', () => {
-      it('Should return capacities', (done) => {
-        devicesManager._getCapacity(done);
+    describe('#_mapDevicesNames()', () => {
+      it('should return device names only', () => {
+        const deviceNames = devicesManager._mapDevicesNames([`/${testFsDir}/dev1/${storageDirName}`]);
+        expect(deviceNames).to.be.an('array');
+        expect(deviceNames).to.have.length(1);
+        expect(deviceNames[0]).to.be('dev1');
+      });
+    });
+
+    describe('#_parseDfOutput()', () => {
+      it('should return device stats, totalCapacity and usedCapacityPercent', () => {
+        const dev1 = `${devicesManager.getDevicesPath()}/dev1`;
+        const dev2 = `${devicesManager.getDevicesPath()}/dev2`;
+        const df = devicesManager._parseDfOutput(
+          [
+            'Mounted on   1K-blocks Use%',
+            '/dev           9999999   0%',
+            '/run           9999999   1%',
+            '/              9999999  10%',
+            `${dev1}             100  50%`,
+            `${dev2}             200  50%`
+          ].join('\n')
+        );
+        expect(df).to.be.an('object');
+        expect(df).to.only.have.keys('stats', 'totalCapacity', 'usedCapacityPercent');
+        expect(df.stats).to.be.an('object');
+        expect(df.stats).to.only.have.keys(dev1, dev2);
+        expect(df.stats[dev1]).to.be.an('object');
+        expect(df.stats[dev1]).to.only.have.keys('usedPercent', 'size');
+        expect(df.stats[dev1].usedPercent).to.be(0.5);
+        expect(df.stats[dev1].size).to.be(100);
+        expect(df.stats[dev2]).to.be.an('object');
+        expect(df.stats[dev2]).to.only.have.keys('usedPercent', 'size');
+        expect(df.stats[dev2].usedPercent).to.be(0.5);
+        expect(df.stats[dev2].size).to.be(200);
+        expect(df.totalCapacity).to.be(300);
+        expect(df.usedCapacityPercent).to.be(0.5);
+      });
+
+      it('should return device stats, totalCapacity and usedCapacityPercent as null if no devices found', () => {
+        const df = devicesManager._parseDfOutput('');
+        expect(df).to.be.an('object');
+        expect(df).to.only.have.keys('stats', 'totalCapacity', 'usedCapacityPercent');
+        expect(df.stats).to.be.an('object');
+        expect(df.stats).to.be.empty();
+        expect(df.totalCapacity).to.be(null);
+        expect(df.usedCapacityPercent).to.be(null);
+      });
+    });
+
+    describe('#_calculateCapacity()', () => {
+      let calculateCapacityFn;
+
+      beforeEach(() => {
+        _calculateCapacityFn = simple.mock(devicesManager, '_calculateCapacity');
+      });
+
+      afterEach(() => {
+        _calculateCapacityFn = null;
+        simple.restore();
+      });
+
+      it('should be null by default and after first check', (done) => {
+        expect(devicesManager.getTotalCapacity()).to.be(null);
+
+        setTimeout(() => {
+          expect(devicesManager.getTotalCapacity()).to.be(null);
+          expect(_calculateCapacityFn.callCount).to.be.greaterThan(0);
+          done();
+        }, calculateCapacityInterval * 1.1);
       });
     });
   });

@@ -69,6 +69,36 @@ class DevicesManager extends EventEmitter {
     return this.fs.stat(paths, (err) => done(null, err && err.code === CODES.ENOENT));
   }
 
+  _parseDfOutput(output) {
+    let totalCapacity = null;
+    let usedCapacity = null;
+    const stats = output
+      .split('\n')
+      .slice(1)
+      .reduce((acc, item) => {
+        const [target, textSize, textPercent] = item.replace(/\s+/g, ' ').split(' ');
+        if (textPercent && textSize && target && target.startsWith(this.devicesPath)) {
+          const size = Number(textSize);
+          const usedPercent = Number(textPercent.replace('%', '')) / 100;
+          acc[target] = {usedPercent, size};
+          totalCapacity = (totalCapacity || 0) + size;
+          usedCapacity = (usedCapacity || 0) + size * usedPercent;
+        }
+        return acc;
+      }, {});
+
+    let usedCapacityPercent = null;
+    if (totalCapacity > 0) {
+      usedCapacityPercent = usedCapacity / totalCapacity;
+    }
+
+    return {
+      stats,
+      totalCapacity,
+      usedCapacityPercent
+    };
+  }
+
   //TODO tests
   _calculateCapacity() {
     //ls -la /dev/disk/by-uuid/
@@ -83,46 +113,16 @@ class DevicesManager extends EventEmitter {
         return;
       }
 
-      let totalCapacity = 0;
-      let usedCapacity = 0;
-      const stats = res
-        .split('\n')
-        .slice(1)
-        .reduce((acc, item) => {
-          const [target, textSize, textPercent] = item.replace(/\s+/g, ' ').split(' ');
-          if (textPercent && textSize && target && target.startsWith(this.devicesPath)) {
-            const size = Number(textSize);
-            const usedPercent = Number(textPercent.replace('%', '')) / 100;
-            acc[target] = {usedPercent, size};
-            totalCapacity += size;
-            usedCapacity += size * usedPercent;
-          }
-          return acc;
-        }, {});
+      const {stats, totalCapacity, usedCapacityPercent} = this._parseDfOutput(res);
 
       this._capacityStats = stats;
       this._totalCapacity = totalCapacity;
 
-      if (totalCapacity > 0) {
-        const usedCapacityPercent = usedCapacity / totalCapacity;
-        if (usedCapacityPercent !== this._usedCapacityPercent) {
-          this._usedCapacityPercent = usedCapacityPercent;
-          this.emit(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, this._usedCapacityPercent);
-        }
+      if (usedCapacityPercent !== this._usedCapacityPercent) {
+        this._usedCapacityPercent = usedCapacityPercent;
+        this.emit(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, this._usedCapacityPercent);
       }
     });
-  }
-
-  getCapasityStats() {
-    return this._capacityStats;
-  }
-
-  getTotalCapacity() {
-    return this._totalCapacity;
-  }
-
-  getUsedCapacityPercent() {
-    return this._usedCapacityPercent;
   }
 
   _lookupDevices() {
@@ -232,6 +232,18 @@ class DevicesManager extends EventEmitter {
         .split('/')
         .pop()
     );
+  }
+
+  getCapacityStats() {
+    return this._capacityStats;
+  }
+
+  getTotalCapacity() {
+    return this._totalCapacity;
+  }
+
+  getUsedCapacityPercent() {
+    return this._usedCapacityPercent;
   }
 
   getDevicesPath() {
