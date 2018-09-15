@@ -303,7 +303,7 @@ describe('devicesManager', () => {
     });
 
     describe('#_calculateCapacity()', () => {
-      let calculateCapacityFn;
+      let _calculateCapacityFn;
 
       beforeEach(() => {
         _calculateCapacityFn = simple.mock(devicesManager, '_calculateCapacity');
@@ -314,11 +314,35 @@ describe('devicesManager', () => {
         simple.restore();
       });
 
-      it('should be null by default and after first check', (done) => {
+      it('##getTotalCapacity() should be null by default and after first check', (done) => {
         expect(devicesManager.getTotalCapacity()).to.be(null);
 
         setTimeout(() => {
           expect(devicesManager.getTotalCapacity()).to.be(null);
+          expect(_calculateCapacityFn.callCount).to.be.greaterThan(0);
+          done();
+        }, calculateCapacityInterval * 1.1);
+      });
+
+      it('##getUsedCapacityPercent() should be null by default and after first check', (done) => {
+        expect(devicesManager.getUsedCapacityPercent()).to.be(null);
+
+        setTimeout(() => {
+          expect(devicesManager.getUsedCapacityPercent()).to.be(null);
+          expect(_calculateCapacityFn.callCount).to.be.greaterThan(0);
+          done();
+        }, calculateCapacityInterval * 1.1);
+      });
+
+      it('##getCapacityStats() should be empty by default and after first check', (done) => {
+        const stats = devicesManager.getCapacityStats();
+        expect(stats).to.be.an('object');
+        expect(stats).to.be.empty();
+
+        setTimeout(() => {
+          const stats = devicesManager.getCapacityStats();
+          expect(stats).to.be.an('object');
+          expect(stats).to.be.empty();
           expect(_calculateCapacityFn.callCount).to.be.greaterThan(0);
           done();
         }, calculateCapacityInterval * 1.1);
