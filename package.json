@@ -41,7 +41,7 @@
     "async": "2.6.1",
     "commander": "2.18.0",
     "fast-safe-stringify": "2.0.6",
-    "ftpd": "git@github.com:antonfisher/nodeftpd.git",
+    "ftpd": "git+https://github.com/antonfisher/nodeftpd.git",
     "winston": "3.1.0"
   },
   "devDependencies": {
