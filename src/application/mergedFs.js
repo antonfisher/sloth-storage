@@ -1,12 +1,18 @@
 const defaultNodeFs = require('fs');
 const {join, dirname} = require('path');
 const EventEmitter = require('events');
+const {Writable} = require('stream');
 const async = require('async');
 
 const {CODES, createError, createNotExistError} = require('./errorHelpers');
 
+/**
+ * @param {DeviceManager} deviceManager     DeviceManager instance
+ * @param {number}        replicationCount  the number of replications for file write
+ * @param {fs}            fs                link to nodejs fs module
+ */
 class MergedFs extends EventEmitter {
-  constructor({devicesManager, fs = defaultNodeFs} = {}) {
+  constructor({devicesManager, replicationCount, fs = defaultNodeFs} = {}) {
     super();
 
     if (!devicesManager) {
@@ -14,7 +20,12 @@ class MergedFs extends EventEmitter {
     }
 
     this.devicesManager = devicesManager;
+    this.replicationCount = replicationCount;
     this.fs = fs;
+  }
+
+  setReplicationCount(replicationCount) {
+    this.replicationCount = replicationCount;
   }
 
   _getRelativePath(path) {
@@ -145,12 +156,13 @@ class MergedFs extends EventEmitter {
           return callback(parentErr);
         }
 
-        this.devicesManager.getDeviceForWrite((devErr, device) => {
+        this.devicesManager.getDeviceForWrite((devErr, devices) => {
           if (devErr) {
             return callback(devErr);
           }
 
-          this._mkdirRecursive(join(device, relativePath), mode, (mkdirErr) => {
+          //TODO handle multiply devices
+          this._mkdirRecursive(join(devices[0], relativePath), mode, (mkdirErr) => {
             if (mkdirErr) {
               return callback(mkdirErr);
             }
@@ -292,43 +304,67 @@ class MergedFs extends EventEmitter {
 
     const relativePath = this._getRelativePath(path);
 
-    this.devicesManager.getDeviceForWrite((deviceErr, device) => {
-      if (deviceErr) {
-        return callback(deviceErr);
-      }
-
-      const resolvedPath = join(device, relativePath);
-      this.stat(path, (err) => {
-        if (!err) {
-          return callback(createError(`File already exist: ${relativePath}`, CODES.EEXIST));
+    async.waterfall(
+      [
+        (done) =>
+          this.stat(path, (err) => {
+            if (!err) {
+              return done(createError(`Cannot write file: File already exist: ${relativePath}`, CODES.EEXIST));
+            }
+            return done(null);
+          }),
+        (done) =>
+          this.stat(dirname(path), (dirErr, dirStat) => {
+            if (dirErr) {
+              return done(dirErr);
+            } else if (!dirStat.isDirectory()) {
+              return done(
+                createError(
+                  `Cannot write file: Failed to resolve path "${relativePath}": path contains a file in the middle`,
+                  CODES.EISFILE
+                )
+              );
+            } else {
+              return done(null);
+            }
+          }),
+        (done) => this.devicesManager.getDeviceForWrite(done),
+        (devices, done) => done(null, devices.slice(0, this.replicationCount).map((dev) => join(dev, relativePath))),
+        (resolvedDevicePaths, done) =>
+          async.each(
+            resolvedDevicePaths,
+            (resolvedDevicePath, itemDone) => {
+              this._mkdirRecursive(dirname(resolvedDevicePath), (mkdirErr) => {
+                // probably this device already contain this directory
+                if (mkdirErr && mkdirErr.code !== CODES.EEXIST) {
+                  return itemDone(mkdirErr);
+                } else {
+                  return itemDone(null);
+                }
+              });
+            },
+            (eachErr) => done(eachErr, resolvedDevicePaths)
+          ),
+        (resolvedDevicePaths, done) =>
+          async.each(
+            resolvedDevicePaths,
+            (resolvedDevicePath, itemDone) =>
+              this.fs.writeFile(resolvedDevicePath, data, options, (writeErr) => itemDone(writeErr)),
+            done
+          )
+      ],
+      (err) => {
+        if (err) {
+          return callback(err);
         }
 
-        this.stat(dirname(path), (dirErr, dirStat) => {
-          if (dirErr) {
-            return callback(dirErr);
-          } else if (!dirStat.isDirectory()) {
-            return callback(
-              createError(`Failed to resolve path "${relativePath}": path contains a file in the middle`, CODES.EISFILE)
-            );
-          }
-
-          this._mkdirRecursive(dirname(resolvedPath), (mkdirErr) => {
-            if (mkdirErr && mkdirErr.code !== CODES.EEXIST) {
-              // probably this device already contain this directory
-              return callback(mkdirErr);
-            }
-
-            return this.fs.writeFile(resolvedPath, data, options, (writeErr) => {
-              this.emit(MergedFs.EVENTS.FILE_UPDATED, relativePath);
-              callback(writeErr);
-            });
-          });
-        });
-      });
-    });
+        this.emit(MergedFs.EVENTS.FILE_UPDATED, relativePath);
+        return callback(null);
+      }
+    );
   }
 
-  //not supported by replicator, remove?
+  //UNSTABLE (NOT IMPLEMENTED PROPERLY)
   createReadStream(path, options) {
     let resolvedPath;
 
@@ -344,11 +380,11 @@ class MergedFs extends EventEmitter {
     }
   }
 
-  //not supported by replicator, remove?
+  //UNSTABLE (NOT IMPLEMENTED PROPERLY)
   createWriteStream(path, options) {
     const relativePath = this._getRelativePath(path);
-    const device = this.devicesManager.getDeviceForWriteSync();
-    const resolvedPath = join(device, relativePath);
+    const device = this.devicesManager.getDeviceForWriteSync().slice(0, this.replicationCount);
+    const resolvedPaths = device.map((dev) => join(dev, relativePath));
 
     if (!path) {
       throw createNotExistError(`Cannot create write stream, path is empty: ${path}`);
@@ -371,7 +407,9 @@ class MergedFs extends EventEmitter {
     }
 
     try {
-      this._mkdirRecursiveSync(dirname(resolvedPath));
+      resolvedPaths.forEach((resolvedPath) => {
+        this._mkdirRecursiveSync(dirname(resolvedPath));
+      });
     } catch (e) {
       if (e.code !== CODES.EEXIST) {
         // probably this device already contain this directory
@@ -379,7 +417,26 @@ class MergedFs extends EventEmitter {
       }
     }
 
-    return this.fs.createWriteStream(resolvedPath, options);
+    const firstFileWriteStream = this.fs.createWriteStream(resolvedPaths[0], options);
+
+    firstFileWriteStream.on('finish', () => {
+      //let copiedCount = 0;
+      //const onStreamClose = () => {
+      //  copiedCount++;
+      //  if (copiedCount === resolvedPaths.length - 1) {
+      //    firstFileWriteStream.close();
+      //  }
+      //};
+      process.nextTick(() => {
+        const readStream = this.fs.createReadStream(resolvedPaths[0]);
+        for (let i = 1; i < resolvedPaths.length; i++) {
+          //readStream.pipe(this.fs.createWriteStream(resolvedPaths[i], options).on('close', onStreamClose));
+          readStream.pipe(this.fs.createWriteStream(resolvedPaths[i], options));
+        }
+      });
+    });
+
+    return firstFileWriteStream;
   }
 }
 

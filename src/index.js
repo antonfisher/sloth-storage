@@ -50,7 +50,7 @@ parseCliArgs(
         logger.info(`[DevicesManager] Storage utilization changed: ${(percent * 100).toFixed(1)}%`);
       });
 
-    const mergedFs = new MergedFs({devicesManager});
+    const mergedFs = new MergedFs({devicesManager, replicationCount: 2});
 
     logger.info('Starting FTP server...');
     const server = new FtpServer(ftpServerOptions.host, {
@@ -60,7 +60,9 @@ parseCliArgs(
       allowUnauthorizedTls: true,
       useWriteFile: false, // unstable
       useReadFile: false, // unstable
-      uploadMaxSlurpSize: 1024 * 1024 * 1024, // N/A unless 'useWriteFile' is true.
+      //useWriteFile: true, // trouble with big files
+      //useReadFile: true, // trouble with big files
+      uploadMaxSlurpSize: 32 * 1024 * 1024 * 1024, // N/A unless 'useWriteFile' is true.
       getInitialCwd: () => '/',
       getRoot: () => '/'
     });

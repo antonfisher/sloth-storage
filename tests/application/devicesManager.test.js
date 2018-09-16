@@ -208,9 +208,11 @@ describe('devicesManager', () => {
       it('should return device from list', (done) => {
         const devices = devicesManager.getDevices();
 
-        devicesManager.getDeviceForWrite((err, device) => {
+        devicesManager.getDeviceForWrite((err, devicesForWrite) => {
           expect(devices).to.be.an('array');
-          expect(devices).to.contain(device);
+          devicesForWrite.forEach((device) => {
+            expect(devices).to.contain(device);
+          });
           done(err);
         });
       });
@@ -219,7 +221,7 @@ describe('devicesManager', () => {
         exec(`rm -rf ./${testFsDir}/*`);
 
         setTimeout(() => {
-          devicesManager.getDeviceForWrite((err, dev) => {
+          devicesManager.getDeviceForWrite((err) => {
             expect(err.message).to.contain('No devices for write');
             done();
           });
@@ -232,7 +234,9 @@ describe('devicesManager', () => {
         const devices = devicesManager.getDevices();
         try {
           expect(devices).to.be.an('array');
-          expect(devices).to.contain(devicesManager.getDeviceForWriteSync());
+          devicesManager.getDeviceForWriteSync().forEach((device) => {
+            expect(devices).to.contain(device);
+          });
           done();
         } catch (e) {
           done(e);
@@ -264,7 +268,9 @@ describe('devicesManager', () => {
     describe('#_parseDfOutput()', () => {
       it('should return device stats, totalCapacity and usedCapacityPercent', () => {
         const dev1 = `${devicesManager.getDevicesPath()}/dev1`;
+        const dev1Key = `${dev1}/${storageDirName}`;
         const dev2 = `${devicesManager.getDevicesPath()}/dev2`;
+        const dev2Key = `${dev2}/${storageDirName}`;
         const df = devicesManager._parseDfOutput(
           [
             'Mounted on   1K-blocks Use%',
@@ -278,15 +284,15 @@ describe('devicesManager', () => {
         expect(df).to.be.an('object');
         expect(df).to.only.have.keys('stats', 'totalCapacity', 'usedCapacityPercent');
         expect(df.stats).to.be.an('object');
-        expect(df.stats).to.only.have.keys(dev1, dev2);
-        expect(df.stats[dev1]).to.be.an('object');
-        expect(df.stats[dev1]).to.only.have.keys('usedPercent', 'size');
-        expect(df.stats[dev1].usedPercent).to.be(0.5);
-        expect(df.stats[dev1].size).to.be(100);
-        expect(df.stats[dev2]).to.be.an('object');
-        expect(df.stats[dev2]).to.only.have.keys('usedPercent', 'size');
-        expect(df.stats[dev2].usedPercent).to.be(0.5);
-        expect(df.stats[dev2].size).to.be(200);
+        expect(df.stats).to.only.have.keys(dev1Key, dev2Key);
+        expect(df.stats[dev1Key]).to.be.an('object');
+        expect(df.stats[dev1Key]).to.only.have.keys('usedPercent', 'size');
+        expect(df.stats[dev1Key].usedPercent).to.be(0.5);
+        expect(df.stats[dev1Key].size).to.be(100);
+        expect(df.stats[dev2Key]).to.be.an('object');
+        expect(df.stats[dev2Key]).to.only.have.keys('usedPercent', 'size');
+        expect(df.stats[dev2Key].usedPercent).to.be(0.5);
+        expect(df.stats[dev2Key].size).to.be(200);
         expect(df.totalCapacity).to.be(300);
         expect(df.usedCapacityPercent).to.be(0.5);
       });

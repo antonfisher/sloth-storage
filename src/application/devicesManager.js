@@ -10,6 +10,7 @@ const {CODES} = require('./errorHelpers');
 const DEFAULT_STORAGE_DIR_NAME = '.sloth-storage';
 const DEFAULT_INTERVAL_LOOKUP_DEVICES = 5 * 1000;
 const DEFAULT_INTERVAL_CALCULATE_CAPACITY = 5 * 1000;
+const DEFAULT_REPLICATION_COUNT = 1;
 
 class NoDevicesFoundWarning extends Error {
   constructor(devicesPath) {
@@ -80,7 +81,7 @@ class DevicesManager extends EventEmitter {
         if (textPercent && textSize && target && target.startsWith(this.devicesPath)) {
           const size = Number(textSize);
           const usedPercent = Number(textPercent.replace('%', '')) / 100;
-          acc[target] = {usedPercent, size};
+          acc[`${target}/${this.storageDirName}`] = {usedPercent, size};
           totalCapacity = (totalCapacity || 0) + size;
           usedCapacity = (usedCapacity || 0) + size * usedPercent;
         }
@@ -258,10 +259,21 @@ class DevicesManager extends EventEmitter {
     return [...this.devices].sort(() => (0.5 - Math.random() < 0 ? -1 : 1)); // random read access
   }
 
-  //TODO use capacity analysis
   getDeviceForWriteSync() {
-    if (this.devices.length > 0) {
-      return this.devices[mathUtils.getRandomIntInclusive(0, this.devices.length - 1)];
+    const stats = this._capacityStats;
+
+    if (Object.keys(stats).length > 1) {
+      return [...this.devices].sort((a, b) => {
+        if (stats[a] && stats[b]) {
+          return stats[a].usedCapacityPercent > stats[b].usedCapacityPercent ? -1 : 1;
+        } else if (stats[a]) {
+          return 1;
+        } else {
+          return -1;
+        }
+      });
+    } else if (this.devices.length > 0) {
+      return mathUtils.shuffleArray([...this.devices]);
     }
 
     throw new Error('No devices for write');
