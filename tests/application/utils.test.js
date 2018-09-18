@@ -47,7 +47,7 @@ describe('Utils', () => {
     expect(utils.formatBytes(1024 * 1024)).to.be('1.00Mb');
     expect(utils.formatBytes(1024 * 1024 * 1024)).to.be('1.00Gb');
     expect(utils.formatBytes(1024 * 1024 * 1024 * 1024)).to.be('1.00Tb');
-    expect(utils.formatBytes(1024 ** 10)).to.be('N/A');
+    expect(utils.formatBytes(Math.pow(1024, 10))).to.be('N/A');
     expect(utils.formatBytes(null)).to.be('N/A');
 
     done();
