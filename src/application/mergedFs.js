@@ -4,7 +4,10 @@ const EventEmitter = require('events');
 //const {Writable} = require('stream');
 const async = require('async');
 
+const WriteInProgressMap = require('./writeInProgressMap');
 const {CODES, createError, createNotExistError} = require('./errorHelpers');
+
+const writeInProgressMap = new WriteInProgressMap();
 
 /**
  * @param {DeviceManager} deviceManager     DeviceManager instance
@@ -419,19 +422,17 @@ class MergedFs extends EventEmitter {
 
     const firstFileWriteStream = this.fs.createWriteStream(resolvedPaths[0], options);
 
+    //async replicas creation (better ?)
     firstFileWriteStream.on('finish', () => {
-      //let copiedCount = 0;
-      //const onStreamClose = () => {
-      //  copiedCount++;
-      //  if (copiedCount === resolvedPaths.length - 1) {
-      //    firstFileWriteStream.close();
-      //  }
-      //};
       process.nextTick(() => {
-        const readStream = this.fs.createReadStream(resolvedPaths[0]);
         for (let i = 1; i < resolvedPaths.length; i++) {
-          //readStream.pipe(this.fs.createWriteStream(resolvedPaths[i], options).on('close', onStreamClose));
-          readStream.pipe(this.fs.createWriteStream(resolvedPaths[i], options));
+          writeInProgressMap.add(relativePath, resolvedPaths[i]);
+          this.fs.createReadStream(resolvedPaths[0]).pipe(
+            this.fs
+              .createWriteStream(resolvedPaths[i], options)
+              .on('error', writeInProgressMap.remove.bind(writeInProgressMap, relativePath, resolvedPaths[i]))
+              .on('finish', writeInProgressMap.remove.bind(writeInProgressMap, relativePath, resolvedPaths[i]))
+          );
         }
       });
     });

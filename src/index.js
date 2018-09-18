@@ -7,11 +7,45 @@ const DevicesManager = require('./application/devicesManager');
 const MergedFs = require('./application/mergedFs');
 const parseCliArgs = require('./application/parseCliArgs');
 
+let ftpServer;
+
 const ftpServerOptions = {
   host: process.env.IP || '127.0.0.1',
   port: process.env.PORT || 7002,
   tls: null
 };
+
+function onUnhandledError(err) {
+  try {
+    try {
+      if (ftpServer) {
+        ftpServer.close();
+      }
+    } catch (e) {
+      logger.error(e);
+    }
+    logger.error(err);
+  } catch (e) {
+    console.log('LOGGER ERROR', e); //eslint-disable-line no-console
+    console.log('ERROR', err); //eslint-disable-line no-console
+  }
+  process.exit(1);
+}
+
+process.on('unhandledRejection', onUnhandledError);
+process.on('uncaughtException', onUnhandledError);
+
+process.on('SIGINT', function() {
+  logger.info('Exit...');
+  try {
+    if (ftpServer) {
+      ftpServer.close();
+    }
+  } catch (e) {
+    logger.error(e);
+  }
+  process.exit();
+});
 
 parseCliArgs(
   {
@@ -53,7 +87,7 @@ parseCliArgs(
     const mergedFs = new MergedFs({devicesManager, replicationCount: 2});
 
     logger.info('Starting FTP server...');
-    const server = new FtpServer(ftpServerOptions.host, {
+    ftpServer = new FtpServer(ftpServerOptions.host, {
       pasvPortRangeStart: 1025,
       pasvPortRangeEnd: 1050,
       tlsOptions: ftpServerOptions.tls,
@@ -67,11 +101,11 @@ parseCliArgs(
       getRoot: () => '/'
     });
 
-    server.on('error', (error) => {
+    ftpServer.on('error', (error) => {
       logger.error('FTP Server error:', error);
     });
 
-    server.on('client:connected', (connection) => {
+    ftpServer.on('client:connected', (connection) => {
       let username = null;
 
       logger.info(`client connected: ${connection.remoteAddress}`);
@@ -93,8 +127,8 @@ parseCliArgs(
       });
     });
 
-    server.debugging = 4;
-    server.listen(ftpServerOptions.port);
+    ftpServer.debugging = 4;
+    ftpServer.listen(ftpServerOptions.port);
 
     logger.info(`FTP server is listening on port ${ftpServerOptions.port}`);
   }
