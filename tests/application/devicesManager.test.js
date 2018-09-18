@@ -358,7 +358,7 @@ describe('devicesManager', () => {
         const TEST_ERROR = 'TEST_ERROR';
         const localDevicesManager = new DevicesManager({
           devicesPath: testFsPath,
-          lookupDevicesInterval,
+          lookupDevicesInterval: 10000,
           calculateCapacityInterval,
           storageDirName,
           childProcess: {exec: (cmd, callback) => callback(TEST_ERROR)}
