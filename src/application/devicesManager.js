@@ -4,7 +4,7 @@ const {join} = require('path');
 const EventEmitter = require('events');
 const async = require('async');
 
-const mathUtils = require('./mathUtils');
+const utils = require('./utils');
 const {CODES} = require('./errorHelpers');
 
 const DEFAULT_STORAGE_DIR_NAME = '.sloth-storage';
@@ -79,7 +79,7 @@ class DevicesManager extends EventEmitter {
       .reduce((acc, item) => {
         const [target, textSize, textPercent] = item.replace(/\s+/g, ' ').split(' ');
         if (textPercent && textSize && target && target.startsWith(this.devicesPath)) {
-          const size = Number(textSize);
+          const size = Number(textSize) * 1024;
           const usedPercent = Number(textPercent.replace('%', '')) / 100;
           acc[`${target}/${this.storageDirName}`] = {usedPercent, size};
           totalCapacity = (totalCapacity || 0) + size;
@@ -103,10 +103,10 @@ class DevicesManager extends EventEmitter {
   //TODO tests
   _calculateCapacity() {
     //ls -la /dev/disk/by-uuid/
+    const percent = (this._usedCapacityPercent * 100).toFixed(5);
     this.emit(
       DevicesManager.EVENTS.VERBOSE,
-      //TODO format percent/capacity function
-      `Get devices utilization (current usage: ${(this._usedCapacityPercent * 100).toFixed(5)}%)...`
+      `Get devices utilization (current usage: ${percent}% of ${utils.formatBytes(this._totalCapacity)})...`
     );
     this.childProcess.exec('df -kl --output=target,size,pcent', (err, res) => {
       if (err) {
@@ -273,7 +273,7 @@ class DevicesManager extends EventEmitter {
         }
       });
     } else if (this.devices.length > 0) {
-      return mathUtils.shuffleArray([...this.devices]);
+      return utils.shuffleArray([...this.devices]);
     }
 
     throw new Error('No devices for write');

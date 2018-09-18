@@ -277,8 +277,8 @@ describe('devicesManager', () => {
             '/dev           9999999   0%',
             '/run           9999999   1%',
             '/              9999999  10%',
-            `${dev1}             100  50%`,
-            `${dev2}             200  50%`
+            `${dev1}            100  50%`,
+            `${dev2}            200  50%`
           ].join('\n')
         );
         expect(df).to.be.an('object');
@@ -288,12 +288,12 @@ describe('devicesManager', () => {
         expect(df.stats[dev1Key]).to.be.an('object');
         expect(df.stats[dev1Key]).to.only.have.keys('usedPercent', 'size');
         expect(df.stats[dev1Key].usedPercent).to.be(0.5);
-        expect(df.stats[dev1Key].size).to.be(100);
+        expect(df.stats[dev1Key].size).to.be(100 * 1024);
         expect(df.stats[dev2Key]).to.be.an('object');
         expect(df.stats[dev2Key]).to.only.have.keys('usedPercent', 'size');
         expect(df.stats[dev2Key].usedPercent).to.be(0.5);
-        expect(df.stats[dev2Key].size).to.be(200);
-        expect(df.totalCapacity).to.be(300);
+        expect(df.stats[dev2Key].size).to.be(200 * 1024);
+        expect(df.totalCapacity).to.be(300 * 1024);
         expect(df.usedCapacityPercent).to.be(0.5);
       });
 
@@ -352,6 +352,59 @@ describe('devicesManager', () => {
           expect(_calculateCapacityFn.callCount).to.be.greaterThan(0);
           done();
         }, calculateCapacityInterval * 1.1);
+      });
+
+      it("should emit an WARN event if cannot run 'df' bash command", (done) => {
+        const TEST_ERROR = 'TEST_ERROR';
+        const localDevicesManager = new DevicesManager({
+          devicesPath: testFsPath,
+          lookupDevicesInterval,
+          calculateCapacityInterval,
+          storageDirName,
+          childProcess: {exec: (cmd, callback) => callback(TEST_ERROR)}
+        });
+
+        localDevicesManager.on(DevicesManager.EVENTS.WARN, (message) => {
+          localDevicesManager.destroy();
+          expect(message).contain('Fail to get device capacities');
+          expect(message).contain(TEST_ERROR);
+          done();
+        });
+      });
+
+      it('should emit an USED_CAPACITY_PERCENT_CHANGED event if devices utilization has been changed', (done) => {
+        const dev1 = `${devicesManager.getDevicesPath()}/dev1`;
+
+        const dfOutput1 = [
+          'Mounted on   1K-blocks Use%',
+          '/              9999999  10%',
+          `${dev1}            100  10%`
+        ].join('\n');
+
+        const dfOutput2 = [
+          'Mounted on   1K-blocks Use%',
+          '/              9999999  10%',
+          `${dev1}            200  25%`
+        ].join('\n');
+
+        const execMock = simple
+          .stub()
+          .callbackWith(null, dfOutput1)
+          .callbackWith(null, dfOutput2);
+
+        const localDevicesManager = new DevicesManager({
+          devicesPath: testFsPath,
+          lookupDevicesInterval,
+          calculateCapacityInterval,
+          storageDirName,
+          childProcess: {exec: execMock}
+        });
+
+        localDevicesManager.on(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, (value) => {
+          localDevicesManager.destroy();
+          expect(value).to.be(0.25);
+          done();
+        });
       });
     });
   });

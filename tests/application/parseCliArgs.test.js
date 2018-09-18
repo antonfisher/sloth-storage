@@ -1,4 +1,5 @@
 const expect = require('expect.js');
+const {exec} = require('../utils');
 
 const parseCliArgs = require('../../src/application/parseCliArgs');
 
@@ -90,6 +91,16 @@ describe('#parseCliArgs()', () => {
           done();
         }
       );
+    });
+
+    it('"--help" should show help and exit', (done) => {
+      try {
+        const result = exec('npm start -- --help').toString();
+        expect(result).to.contain('Examples:');
+        done();
+      } catch (e) {
+        done(e);
+      }
     });
   });
 
