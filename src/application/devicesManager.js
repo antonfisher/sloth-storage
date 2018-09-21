@@ -10,7 +10,6 @@ const {CODES} = require('./errorHelpers');
 const DEFAULT_STORAGE_DIR_NAME = '.sloth-storage';
 const DEFAULT_INTERVAL_LOOKUP_DEVICES = 5 * 1000;
 const DEFAULT_INTERVAL_CALCULATE_CAPACITY = 5 * 1000;
-const DEFAULT_REPLICATION_COUNT = 1;
 
 class NoDevicesFoundWarning extends Error {
   constructor(devicesPath) {
@@ -263,9 +262,10 @@ class DevicesManager extends EventEmitter {
     const stats = this._capacityStats;
 
     if (Object.keys(stats).length > 1) {
+      //TODO separate funcion + test
       return [...this.devices].sort((a, b) => {
         if (stats[a] && stats[b]) {
-          return stats[a].usedCapacityPercent > stats[b].usedCapacityPercent ? -1 : 1;
+          return stats[a].usedCapacityPercent > stats[b].usedCapacityPercent ? 1 : -1;
         } else if (stats[a]) {
           return 1;
         } else {
