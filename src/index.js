@@ -5,9 +5,11 @@ const {version, description, homepage} = require('../package.json');
 const logger = require('./application/logger');
 const DevicesManager = require('./application/devicesManager');
 const MergedFs = require('./application/mergedFs');
+const WriteInProgressMap = require('./application/writeInProgressMap');
 const parseCliArgs = require('./application/parseCliArgs');
 
 let ftpServer;
+let devicesManager;
 
 const ftpServerOptions = {
   host: process.env.IP || '127.0.0.1',
@@ -15,15 +17,26 @@ const ftpServerOptions = {
   tls: null
 };
 
-function onUnhandledError(err) {
-  try {
+function cleanUp() {
+  if (ftpServer) {
     try {
-      if (ftpServer) {
-        ftpServer.close();
-      }
+      ftpServer.close();
     } catch (e) {
       logger.error(e);
     }
+  }
+  if (devicesManager) {
+    try {
+      devicesManager.destroy();
+    } catch (e) {
+      logger.error(e);
+    }
+  }
+}
+
+function onUnhandledError(err) {
+  try {
+    cleanUp();
     logger.error(err);
   } catch (e) {
     console.log('LOGGER ERROR', e); //eslint-disable-line no-console
@@ -37,13 +50,7 @@ process.on('uncaughtException', onUnhandledError);
 
 process.on('SIGINT', function() {
   logger.info('Exit...');
-  try {
-    if (ftpServer) {
-      ftpServer.close();
-    }
-  } catch (e) {
-    logger.error(e);
-  }
+  cleanUp();
   process.exit();
 });
 
@@ -67,7 +74,7 @@ parseCliArgs(
       logger.info(`Lookup for storage devices in this path: ${devicesPath} (auto discovered Ubuntu media folder)`);
     }
 
-    const devicesManager = new DevicesManager({devicesPath})
+    devicesManager = new DevicesManager({devicesPath})
       .on(DevicesManager.EVENTS.ERROR, (message) => {
         logger.error(`[DevicesManager] ${message}`);
       })
@@ -84,7 +91,8 @@ parseCliArgs(
         logger.info(`[DevicesManager] Storage utilization changed: ${(percent * 100).toFixed(1)}%`);
       });
 
-    const mergedFs = new MergedFs({devicesManager, replicationCount: 2});
+    const writeInProgressMap = new WriteInProgressMap();
+    const mergedFs = new MergedFs({devicesManager, replicationCount: 2, writeInProgressMap});
 
     logger.info('Starting FTP server...');
     ftpServer = new FtpServer(ftpServerOptions.host, {

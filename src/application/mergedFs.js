@@ -1,21 +1,18 @@
 const defaultNodeFs = require('fs');
 const {join, dirname} = require('path');
 const EventEmitter = require('events');
-//const {Writable} = require('stream');
 const async = require('async');
 
-const WriteInProgressMap = require('./writeInProgressMap');
 const {CODES, createError, createNotExistError} = require('./errorHelpers');
 
-const writeInProgressMap = new WriteInProgressMap();
-
 /**
- * @param {DeviceManager} deviceManager     DeviceManager instance
- * @param {number}        replicationCount  the number of replications for file write
- * @param {fs}            fs                link to nodejs fs module
+ * @param {DeviceManager} deviceManager           DeviceManager instance
+ * @param {WriteInProgressMap} writeInProgressMap WriteInProgressMap instance (RENAME)
+ * @param {number}        replicationCount        the number of replications for file write
+ * @param {fs}            fs                      link to nodejs fs module
  */
 class MergedFs extends EventEmitter {
-  constructor({devicesManager, replicationCount, fs = defaultNodeFs} = {}) {
+  constructor({devicesManager, writeInProgressMap, replicationCount, fs = defaultNodeFs} = {}) {
     super();
 
     if (!devicesManager) {
@@ -23,6 +20,7 @@ class MergedFs extends EventEmitter {
     }
 
     this.devicesManager = devicesManager;
+    this.writeInProgressMap = writeInProgressMap;
     this.replicationCount = replicationCount;
     this.fs = fs;
   }
@@ -45,7 +43,10 @@ class MergedFs extends EventEmitter {
       this.devicesManager.getDevices(),
       (dev, done) =>
         this.fs.stat(join(dev, relativePath), (err, devStat) => {
-          if (err) {
+          if (
+            err ||
+            (this.writeInProgressMap && this.writeInProgressMap.isBusy(relativePath, join(dev, relativePath)))
+          ) {
             return done(null, false);
           }
           stat = devStat;
@@ -386,8 +387,8 @@ class MergedFs extends EventEmitter {
   //UNSTABLE (NOT IMPLEMENTED PROPERLY)
   createWriteStream(path, options) {
     const relativePath = this._getRelativePath(path);
-    const device = this.devicesManager.getDeviceForWriteSync().slice(0, this.replicationCount);
-    const resolvedPaths = device.map((dev) => join(dev, relativePath));
+    const devices = this.devicesManager.getDeviceForWriteSync().slice(0, this.replicationCount);
+    const resolvedPaths = devices.map((dev) => join(dev, relativePath));
 
     if (!path) {
       throw createNotExistError(`Cannot create write stream, path is empty: ${path}`);
@@ -420,24 +421,25 @@ class MergedFs extends EventEmitter {
       }
     }
 
-    const firstFileWriteStream = this.fs.createWriteStream(resolvedPaths[0], options);
+    const [firstResolvedPath, ...restResolvedPaths] = resolvedPaths;
+    const firstResolvedFileWriteStream = this.fs.createWriteStream(firstResolvedPath, options);
 
     //async replicas creation (better ?)
-    firstFileWriteStream.on('finish', () => {
+    firstResolvedFileWriteStream.on('finish', () => {
       process.nextTick(() => {
-        for (let i = 1; i < resolvedPaths.length; i++) {
-          writeInProgressMap.add(relativePath, resolvedPaths[i]);
-          this.fs.createReadStream(resolvedPaths[0]).pipe(
+        restResolvedPaths.forEach((resolvedPath) => {
+          this.writeInProgressMap && this.writeInProgressMap.add(relativePath, resolvedPath);
+          this.fs.createReadStream(firstResolvedPath).pipe(
             this.fs
-              .createWriteStream(resolvedPaths[i], options)
-              .on('error', writeInProgressMap.remove.bind(writeInProgressMap, relativePath, resolvedPaths[i]))
-              .on('finish', writeInProgressMap.remove.bind(writeInProgressMap, relativePath, resolvedPaths[i]))
+              .createWriteStream(resolvedPath, options)
+              .on('error', () => this.writeInProgressMap && this.writeInProgressMap.remove(relativePath, resolvedPath))
+              .on('finish', () => this.writeInProgressMap && this.writeInProgressMap.remove(relativePath, resolvedPath))
           );
-        }
+        });
       });
     });
 
-    return firstFileWriteStream;
+    return firstResolvedFileWriteStream;
   }
 }
 
