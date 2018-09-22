@@ -243,6 +243,26 @@ describe('devicesManager', () => {
         }
       });
 
+      it('should return deviced by utilization size in stats', (done) => {
+        const devices = devicesManager.getDevices();
+
+        try {
+          expect(devices).to.be.an('array');
+          devicesManager._capacityStats = {
+            [devices[0]]: {usedCapacityPercent: 0.3},
+            [devices[1]]: {usedCapacityPercent: 0.1}
+          };
+          const devicesForWrite = devicesManager.getDeviceForWriteSync();
+          expect(devicesForWrite).to.be.an('array');
+          expect(devicesForWrite).to.have.length(devices.length);
+          expect(devicesForWrite[0]).to.be(devices[1]);
+          expect(devicesForWrite[1]).to.be(devices[0]);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+
       it('should throw an error return null if no devices exist', (done) => {
         exec(`rm -rf ./${testFsDir}/*`);
 

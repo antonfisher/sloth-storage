@@ -59,6 +59,7 @@ class DevicesManager extends EventEmitter {
 
     this._asyncFilterDirs = this._asyncFilterDirs.bind(this);
     this._asyncFilterNonExisting = this._asyncFilterNonExisting.bind(this);
+    this._sortDevicesByStats = this._sortDevicesByStats.bind(this);
   }
 
   _asyncFilterDirs(paths, done) {
