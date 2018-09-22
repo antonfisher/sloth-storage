@@ -234,6 +234,21 @@ class DevicesManager extends EventEmitter {
     );
   }
 
+  _sortDevicesByStats(a, b) {
+    const stats = this._capacityStats;
+
+    if (stats[a] && stats[b]) {
+      if (stats[a].usedCapacityPercent == stats[b].usedCapacityPercent) {
+        return 0;
+      }
+      return stats[a].usedCapacityPercent > stats[b].usedCapacityPercent ? 1 : -1;
+    } else if (stats[a]) {
+      return 1;
+    } else {
+      return -1;
+    }
+  }
+
   getCapacityStats() {
     return this._capacityStats;
   }
@@ -262,16 +277,7 @@ class DevicesManager extends EventEmitter {
     const stats = this._capacityStats;
 
     if (Object.keys(stats).length > 1) {
-      //TODO separate funcion + test
-      return [...this.devices].sort((a, b) => {
-        if (stats[a] && stats[b]) {
-          return stats[a].usedCapacityPercent > stats[b].usedCapacityPercent ? 1 : -1;
-        } else if (stats[a]) {
-          return 1;
-        } else {
-          return -1;
-        }
-      });
+      return [...this.devices].sort(this._sortDevicesByStats);
     } else if (this.devices.length > 0) {
       return utils.shuffleArray([...this.devices]);
     }

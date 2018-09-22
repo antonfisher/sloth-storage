@@ -265,6 +265,22 @@ describe('devicesManager', () => {
       });
     });
 
+    describe('#_sortDevicesByStats()', () => {
+      it('should sort devices by stats', () => {
+        const d0 = devicesManager.devices[0];
+        const d1 = devicesManager.devices[1];
+
+        devicesManager._capacityStats = {[d0]: {usedCapacityPercent: 0.9}, [d1]: {usedCapacityPercent: 0.1}};
+        expect(devicesManager._sortDevicesByStats(devicesManager.devices[0], devicesManager.devices[1])).to.be(1);
+
+        devicesManager._capacityStats = {[d0]: {usedCapacityPercent: 0.1}, [d1]: {usedCapacityPercent: 0.9}};
+        expect(devicesManager._sortDevicesByStats(devicesManager.devices[0], devicesManager.devices[1])).to.be(-1);
+
+        devicesManager._capacityStats = {[d0]: {usedCapacityPercent: 0.5}, [d1]: {usedCapacityPercent: 0.5}};
+        expect(devicesManager._sortDevicesByStats(devicesManager.devices[0], devicesManager.devices[1])).to.be(0);
+      });
+    });
+
     describe('#_parseDfOutput()', () => {
       it('should return device stats, totalCapacity and usedCapacityPercent', () => {
         const dev1 = `${devicesManager.getDevicesPath()}/dev1`;
