@@ -270,14 +270,21 @@ describe('devicesManager', () => {
         const d0 = devicesManager.devices[0];
         const d1 = devicesManager.devices[1];
 
-        devicesManager._capacityStats = {[d0]: {usedCapacityPercent: 0.9}, [d1]: {usedCapacityPercent: 0.1}};
-        expect(devicesManager._sortDevicesByStats(devicesManager.devices[0], devicesManager.devices[1])).to.be(1);
-
-        devicesManager._capacityStats = {[d0]: {usedCapacityPercent: 0.1}, [d1]: {usedCapacityPercent: 0.9}};
-        expect(devicesManager._sortDevicesByStats(devicesManager.devices[0], devicesManager.devices[1])).to.be(-1);
-
         devicesManager._capacityStats = {[d0]: {usedCapacityPercent: 0.5}, [d1]: {usedCapacityPercent: 0.5}};
-        expect(devicesManager._sortDevicesByStats(devicesManager.devices[0], devicesManager.devices[1])).to.be(0);
+        expect(devicesManager._sortDevicesByStats(d0, d1)).to.be(0);
+
+        devicesManager._capacityStats = {[d0]: {usedCapacityPercent: 0.9}, [d1]: {usedCapacityPercent: 0.1}};
+        expect(devicesManager._sortDevicesByStats(d0, d1)).to.be(1);
+        expect(devicesManager._sortDevicesByStats(d1, d0)).to.be(-1);
+
+        devicesManager._capacityStats = {[d0]: {usedCapacityPercent: 0.5}};
+        expect(devicesManager._sortDevicesByStats(d0, d1)).to.be(1);
+
+        devicesManager._capacityStats = {[d1]: {usedCapacityPercent: 0.5}};
+        expect(devicesManager._sortDevicesByStats(d0, d1)).to.be(-1);
+
+        devicesManager._capacityStats = {};
+        expect(devicesManager._sortDevicesByStats(d0, d1)).to.be(-1); // or should be 0?
       });
     });
 
