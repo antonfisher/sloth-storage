@@ -34,7 +34,7 @@ function formatBytes(bytes) {
     } else if (result < 10) {
       return `${result.toFixed(4 - SIZE_UNITS[d].length)}${SIZE_UNITS[d]}`;
     } else if (result < 100) {
-      return `${result.toFixed(5 - SIZE_UNITS[d].length)}${SIZE_UNITS[d]}`;
+      return `${result.toFixed(3 - SIZE_UNITS[d].length)}${SIZE_UNITS[d]}`;
     } else {
       return `${result.toFixed(0)}${SIZE_UNITS[d]}`;
     }

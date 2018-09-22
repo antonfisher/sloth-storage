@@ -40,6 +40,7 @@ describe('Utils', () => {
   it('#formatBytes() should return human readable value', (done) => {
     expect(utils.formatBytes(0)).to.be('0B');
     expect(utils.formatBytes(1)).to.be('1.000B');
+    expect(utils.formatBytes(32)).to.be('32.00B');
     expect(utils.formatBytes(1023)).to.be('1023B');
     expect(utils.formatBytes(1024)).to.be('1.00Kb');
     expect(utils.formatBytes(1024 + 512)).to.be('1.50Kb');
