@@ -5,7 +5,7 @@ const {version, description, homepage} = require('../package.json');
 const logger = require('./application/logger');
 const DevicesManager = require('./application/devicesManager');
 const MergedFs = require('./application/mergedFs');
-const WriteInProgressMap = require('./application/writeInProgressMap');
+const Replicator = require('./application/replicator');
 const parseCliArgs = require('./application/parseCliArgs');
 
 let ftpServer;
@@ -91,8 +91,12 @@ parseCliArgs(
         logger.info(`[DevicesManager] Storage utilization changed: ${(percent * 100).toFixed(1)}%`);
       });
 
-    const writeInProgressMap = new WriteInProgressMap();
-    const mergedFs = new MergedFs({devicesManager, replicationCount: 2, writeInProgressMap});
+    const replicator = new Replicator({devicesManager, replicationCount: 2}); //TODO config for rep count
+
+    const mergedFs = new MergedFs({devicesManager, replicationCount: 2}).on(
+      MergedFs.EVENTS.FILE_UPDATED,
+      replicator.replicate
+    );
 
     logger.info('Starting FTP server...');
     ftpServer = new FtpServer(ftpServerOptions.host, {

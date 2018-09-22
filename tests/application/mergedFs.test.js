@@ -860,7 +860,7 @@ describe('mergedFs', () => {
       const newFilePath = 'new-file-3.txt';
 
       mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (path) => {
-        expect(path).to.be(newFilePath);
+        expect(path).to.contain(newFilePath);
         done();
       });
 
@@ -937,6 +937,29 @@ describe('mergedFs', () => {
             done(err);
           });
         });
+      } catch (e) {
+        return done(`createWriteStream() should not throw an exception: ${e}`);
+      }
+    });
+
+    it('should emit an FILE_UPDATED event after writing', (done) => {
+      const newFilePath = 'new-file.txt';
+
+      try {
+        const stream = mergedFs.createWriteStream(newFilePath, {defaultEncoding: 'utf8'});
+        mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (path) => {
+          expect(path).to.contain(newFilePath);
+          done();
+        });
+        stream.end('');
+        //stream.on('finish', () => {
+        //  mergedFs.readFile(newFilePath, 'utf8', (err, data) => {
+        //    expect(err).to.not.be.ok();
+        //    expect(data).to.be.a('string');
+        //    expect(data).to.be(content);
+        //    done(err);
+        //  });
+        //});
       } catch (e) {
         return done(`createWriteStream() should not throw an exception: ${e}`);
       }

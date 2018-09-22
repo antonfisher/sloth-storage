@@ -6,27 +6,21 @@ const async = require('async');
 const {CODES, createError, createNotExistError} = require('./errorHelpers');
 
 /**
- * @param {DeviceManager} deviceManager           DeviceManager instance
- * @param {WriteInProgressMap} writeInProgressMap WriteInProgressMap instance (RENAME)
- * @param {number}        replicationCount        the number of replications for file write
- * @param {fs}            fs                      link to nodejs fs module
+ * @param {DeviceManager} devicesManager  DeviceManager instance
+ * @param {Replicator}    replicator      Replicator instance
+ * @param {fs}            fs              link to nodejs fs module
  */
 class MergedFs extends EventEmitter {
-  constructor({devicesManager, writeInProgressMap, replicationCount, fs = defaultNodeFs} = {}) {
+  constructor({devicesManager, replicator, fs = defaultNodeFs} = {}) {
     super();
 
     if (!devicesManager) {
       throw new Error('No "devicesManager" parameter');
     }
 
-    this.devicesManager = devicesManager;
-    this.writeInProgressMap = writeInProgressMap;
-    this.replicationCount = replicationCount;
+    this.devicesManager = devicesManager; // remove dependency on this
+    this.replicator = replicator; // remove dependency on this
     this.fs = fs;
-  }
-
-  setReplicationCount(replicationCount) {
-    this.replicationCount = replicationCount;
   }
 
   _getRelativePath(path) {
@@ -43,10 +37,7 @@ class MergedFs extends EventEmitter {
       this.devicesManager.getDevices(),
       (dev, done) =>
         this.fs.stat(join(dev, relativePath), (err, devStat) => {
-          if (
-            err ||
-            (this.writeInProgressMap && this.writeInProgressMap.isBusy(relativePath, join(dev, relativePath)))
-          ) {
+          if (err || (this.replicator && this.replicator.isBusy(relativePath, join(dev, relativePath)))) {
             return done(null, false);
           }
           stat = devStat;
@@ -332,39 +323,24 @@ class MergedFs extends EventEmitter {
               return done(null);
             }
           }),
-        (done) => this.devicesManager.getDeviceForWrite(done),
-        (devices, done) => done(null, devices.slice(0, this.replicationCount).map((dev) => join(dev, relativePath))),
-        (resolvedDevicePaths, done) =>
-          async.each(
-            resolvedDevicePaths,
-            (resolvedDevicePath, itemDone) => {
-              this._mkdirRecursive(dirname(resolvedDevicePath), (mkdirErr) => {
-                // probably this device already contain this directory
-                if (mkdirErr && mkdirErr.code !== CODES.EEXIST) {
-                  return itemDone(mkdirErr);
-                } else {
-                  return itemDone(null);
-                }
-              });
-            },
-            (eachErr) => done(eachErr, resolvedDevicePaths)
-          ),
-        (resolvedDevicePaths, done) =>
-          async.each(
-            resolvedDevicePaths,
-            (resolvedDevicePath, itemDone) =>
-              this.fs.writeFile(resolvedDevicePath, data, options, (writeErr) => itemDone(writeErr)),
-            done
-          )
+        (done) => this.devicesManager.getDeviceForWrite(done), //TODO remane, add s
+        (devices, done) => done(null, join(devices[0], relativePath)),
+        (resolvedDevicePath, done) =>
+          this._mkdirRecursive(dirname(resolvedDevicePath), (err) => {
+            // device may already has this directory created
+            if (err && err.code !== CODES.EEXIST) {
+              return done(err);
+            } else {
+              return done(null, resolvedDevicePath);
+            }
+          }),
+        (resolvedDevicePath, done) =>
+          this.fs.writeFile(resolvedDevicePath, data, options, (err) => {
+            process.nextTick(() => this.emit(MergedFs.EVENTS.FILE_UPDATED, resolvedDevicePath));
+            return done(err);
+          })
       ],
-      (err) => {
-        if (err) {
-          return callback(err);
-        }
-
-        this.emit(MergedFs.EVENTS.FILE_UPDATED, relativePath);
-        return callback(null);
-      }
+      callback
     );
   }
 
@@ -387,8 +363,8 @@ class MergedFs extends EventEmitter {
   //UNSTABLE (NOT IMPLEMENTED PROPERLY)
   createWriteStream(path, options) {
     const relativePath = this._getRelativePath(path);
-    const devices = this.devicesManager.getDeviceForWriteSync().slice(0, this.replicationCount);
-    const resolvedPaths = devices.map((dev) => join(dev, relativePath));
+    const device = this.devicesManager.getDeviceForWriteSync()[0];
+    const resolvedPath = join(device, relativePath);
 
     if (!path) {
       throw createNotExistError(`Cannot create write stream, path is empty: ${path}`);
@@ -411,35 +387,21 @@ class MergedFs extends EventEmitter {
     }
 
     try {
-      resolvedPaths.forEach((resolvedPath) => {
-        this._mkdirRecursiveSync(dirname(resolvedPath));
-      });
+      this._mkdirRecursiveSync(dirname(resolvedPath));
     } catch (e) {
       if (e.code !== CODES.EEXIST) {
-        // probably this device already contain this directory
+        // device may already has this directory created
         throw e;
       }
     }
 
-    const [firstResolvedPath, ...restResolvedPaths] = resolvedPaths;
-    const firstResolvedFileWriteStream = this.fs.createWriteStream(firstResolvedPath, options);
+    const resolvedFileWriteStream = this.fs.createWriteStream(resolvedPath, options);
 
-    //async replicas creation (better ?)
-    firstResolvedFileWriteStream.on('finish', () => {
-      process.nextTick(() => {
-        restResolvedPaths.forEach((resolvedPath) => {
-          this.writeInProgressMap && this.writeInProgressMap.add(relativePath, resolvedPath);
-          this.fs.createReadStream(firstResolvedPath).pipe(
-            this.fs
-              .createWriteStream(resolvedPath, options)
-              .on('error', () => this.writeInProgressMap && this.writeInProgressMap.remove(relativePath, resolvedPath))
-              .on('finish', () => this.writeInProgressMap && this.writeInProgressMap.remove(relativePath, resolvedPath))
-          );
-        });
-      });
+    resolvedFileWriteStream.on('finish', () => {
+      this.emit(MergedFs.EVENTS.FILE_UPDATED, resolvedPath);
     });
 
-    return firstResolvedFileWriteStream;
+    return resolvedFileWriteStream;
   }
 }
 
