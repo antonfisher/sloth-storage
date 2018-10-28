@@ -10,6 +10,9 @@ const parseCliArgs = require('./application/parseCliArgs');
 
 let ftpServer;
 let devicesManager;
+let replicator;
+
+const REPLICATION_COUNT = 2;
 
 const ftpServerOptions = {
   host: process.env.IP || '127.0.0.1',
@@ -28,6 +31,13 @@ function cleanUp() {
   if (devicesManager) {
     try {
       devicesManager.destroy();
+    } catch (e) {
+      logger.error(e);
+    }
+  }
+  if (replicator) {
+    try {
+      replicator.destroy();
     } catch (e) {
       logger.error(e);
     }
@@ -75,28 +85,27 @@ parseCliArgs(
     }
 
     devicesManager = new DevicesManager({devicesPath})
-      .on(DevicesManager.EVENTS.ERROR, (message) => {
-        logger.error(`[DevicesManager] ${message}`);
-      })
-      .on(DevicesManager.EVENTS.WARN, (message) => {
-        logger.warn(`[DevicesManager] ${message}`);
-      })
-      .on(DevicesManager.EVENTS.INFO, (message) => {
-        logger.info(`[DevicesManager] ${message}`);
-      })
-      .on(DevicesManager.EVENTS.VERBOSE, (message) => {
-        logger.verbose(`[DevicesManager] ${message}`);
-      })
-      .on(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, (percent) => {
-        logger.info(`[DevicesManager] Storage utilization changed: ${(percent * 100).toFixed(1)}%`);
-      });
+      .on(DevicesManager.EVENTS.ERROR, (message) => logger.error(`[DevicesManager] ${message}`))
+      .on(DevicesManager.EVENTS.WARN, (message) => logger.warn(`[DevicesManager] ${message}`))
+      .on(DevicesManager.EVENTS.INFO, (message) => logger.info(`[DevicesManager] ${message}`))
+      .on(DevicesManager.EVENTS.VERBOSE, (message) => logger.verbose(`[DevicesManager] ${message}`))
+      .on(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, (percent) =>
+        logger.info(`[DevicesManager] Storage utilization changed: ${(percent * 100).toFixed(1)}%`)
+      );
 
-    const replicator = new Replicator({devicesManager, replicationCount: 2}); //TODO config for rep count
+    const mergedFs = new MergedFs({
+      devicesManager,
+      isFileReady: (dev, relativePath) => replicator.isReady(dev, relativePath)
+    });
 
-    const mergedFs = new MergedFs({devicesManager, replicationCount: 2}).on(
-      MergedFs.EVENTS.FILE_UPDATED,
-      replicator.replicate
-    );
+    replicator = new Replicator({devicesManager, mergedFs, replicationCount: REPLICATION_COUNT})
+      .on(Replicator.EVENTS.ERROR, (message) => logger.error(`[Replicator] ${message}`))
+      .on(Replicator.EVENTS.WARN, (message) => logger.warn(`[Replicator] ${message}`))
+      .on(Replicator.EVENTS.INFO, (message) => logger.info(`[Replicator] ${message}`))
+      .on(Replicator.EVENTS.VERBOSE, (message) => logger.verbose(`[Replicator] ${message}`))
+      .on(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, (value) => logger.info(`[Replicator] queue length: ${value}`));
+
+    mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (dev, relativePath) => replicator.onFileUpdate(dev, relativePath));
 
     logger.info('Starting FTP server...');
     ftpServer = new FtpServer(ftpServerOptions.host, {

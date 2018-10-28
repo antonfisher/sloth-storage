@@ -288,11 +288,14 @@ class DevicesManager extends EventEmitter {
 
   getDeviceForWrite(callback) {
     process.nextTick(() => {
+      let devices;
+      let err = null;
       try {
-        return callback(null, this.getDeviceForWriteSync());
+        devices = this.getDeviceForWriteSync();
       } catch (e) {
-        return callback(e);
+        err = e;
       }
+      return callback(err, devices);
     });
   }
 

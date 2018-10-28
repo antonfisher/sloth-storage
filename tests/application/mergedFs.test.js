@@ -859,8 +859,9 @@ describe('mergedFs', () => {
       const content = 'content';
       const newFilePath = 'new-file-3.txt';
 
-      mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (path) => {
-        expect(path).to.contain(newFilePath);
+      mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (device, path) => {
+        expect(device).to.contain(storageDirName);
+        expect(path).to.be(newFilePath);
         done();
       });
 
@@ -947,8 +948,9 @@ describe('mergedFs', () => {
 
       try {
         const stream = mergedFs.createWriteStream(newFilePath, {defaultEncoding: 'utf8'});
-        mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (path) => {
-          expect(path).to.contain(newFilePath);
+        mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (device, path) => {
+          expect(device).to.contain(storageDirName);
+          expect(path).to.be(newFilePath);
           done();
         });
         stream.end('');

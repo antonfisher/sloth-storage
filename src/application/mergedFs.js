@@ -7,11 +7,11 @@ const {CODES, createError, createNotExistError} = require('./errorHelpers');
 
 /**
  * @param {DeviceManager} devicesManager  DeviceManager instance
- * @param {Replicator}    replicator      Replicator instance
+ * @param {function}      isFileReady     calls with (device, rellativePath) to check if read is possible for this file
  * @param {fs}            fs              link to nodejs fs module
  */
 class MergedFs extends EventEmitter {
-  constructor({devicesManager, replicator, fs = defaultNodeFs} = {}) {
+  constructor({devicesManager, isFileReady, fs = defaultNodeFs} = {}) {
     super();
 
     if (!devicesManager) {
@@ -19,7 +19,7 @@ class MergedFs extends EventEmitter {
     }
 
     this.devicesManager = devicesManager; // remove dependency on this
-    this.replicator = replicator; // remove dependency on this
+    this.isFileReady = isFileReady; // remove dependency on this
     this.fs = fs;
   }
 
@@ -37,7 +37,7 @@ class MergedFs extends EventEmitter {
       this.devicesManager.getDevices(),
       (dev, done) =>
         this.fs.stat(join(dev, relativePath), (err, devStat) => {
-          if (err || (this.replicator && this.replicator.isBusy(relativePath, join(dev, relativePath)))) {
+          if (err || (this.isFileReady && !this.isFileReady(dev, relativePath))) {
             return done(null, false);
           }
           stat = devStat;
@@ -324,19 +324,20 @@ class MergedFs extends EventEmitter {
             }
           }),
         (done) => this.devicesManager.getDeviceForWrite(done), //TODO remane, add s
-        (devices, done) => done(null, join(devices[0], relativePath)),
-        (resolvedDevicePath, done) =>
+        (devices, done) => done(null, devices[0]),
+        (device, done) => done(null, device, join(device, relativePath)),
+        (device, resolvedDevicePath, done) =>
           this._mkdirRecursive(dirname(resolvedDevicePath), (err) => {
             // device may already has this directory created
             if (err && err.code !== CODES.EEXIST) {
               return done(err);
             } else {
-              return done(null, resolvedDevicePath);
+              return done(null, device, resolvedDevicePath);
             }
           }),
-        (resolvedDevicePath, done) =>
+        (device, resolvedDevicePath, done) =>
           this.fs.writeFile(resolvedDevicePath, data, options, (err) => {
-            process.nextTick(() => this.emit(MergedFs.EVENTS.FILE_UPDATED, resolvedDevicePath));
+            process.nextTick(() => this.emit(MergedFs.EVENTS.FILE_UPDATED, device, relativePath));
             return done(err);
           })
       ],
@@ -397,9 +398,7 @@ class MergedFs extends EventEmitter {
 
     const resolvedFileWriteStream = this.fs.createWriteStream(resolvedPath, options);
 
-    resolvedFileWriteStream.on('finish', () => {
-      this.emit(MergedFs.EVENTS.FILE_UPDATED, resolvedPath);
-    });
+    resolvedFileWriteStream.on('finish', () => this.emit(MergedFs.EVENTS.FILE_UPDATED, device, relativePath));
 
     return resolvedFileWriteStream;
   }
