@@ -33,7 +33,7 @@ class Replicator extends EventEmitter {
     this._lastQueueLength = 0;
 
     this._replicateNextTimeout = null;
-    this._startReplicateWorker()
+    this._startReplicateWorker();
   }
 
   onFileUpdate(updatedDevice, updatedRelativePath) {
