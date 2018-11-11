@@ -32,11 +32,29 @@ class Replicator extends EventEmitter {
     this._map = {};
     this._lastQueueLength = 0;
 
-    this._replicateNextTimeout = setTimeout(() => this._replicateNext(), this.idleTimeout);
+    this._replicateNextTimeout = null;
+    this._startReplicateWorker()
   }
 
   onFileUpdate(updatedDevice, updatedRelativePath) {
     this._addToQueue(updatedDevice, updatedRelativePath);
+  }
+
+  setReplicationCount(value) {
+    if (value > this.replicationCount) {
+      this.replicationCount = value;
+      //this._stopReplicateWorker();
+      //this._addFilesToQueue(this._startReplicateWorker); //TODO implement
+    }
+  }
+
+  _startReplicateWorker() {
+    this._replicateNextTimeout = setTimeout(() => this._replicateNext(), this.idleTimeout);
+  }
+
+  _stopReplicateWorker() {
+    clearTimeout(this._replicateNextTimeout);
+    this._replicateNextTimeout = null;
   }
 
   _replicateNext() {
@@ -52,6 +70,10 @@ class Replicator extends EventEmitter {
       const sourcePath = join(device, relativePath);
       async.waterfall(
         [
+          //TODO consider to:
+          // - delete files if count more than replicationCount
+          // - replicate files if count less than replicationCount
+
           // get all existing devices
           (done) => this.devicesManager.getDeviceForWrite(done),
           (devices, done) => {

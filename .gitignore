@@ -12,3 +12,4 @@ coverage
 
 # IDE
 .idea
+.code-workspace
