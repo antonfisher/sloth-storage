@@ -4,8 +4,8 @@ const {join} = require('path');
 const EventEmitter = require('events');
 const async = require('async');
 
-const utils = require('./utils');
 const {CODES} = require('./errorHelpers');
+const utils = require('./utils');
 
 const DEFAULT_STORAGE_DIR_NAME = '.sloth-storage';
 const DEFAULT_INTERVAL_LOOKUP_DEVICES = 5 * 1000;

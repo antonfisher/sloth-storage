@@ -7,7 +7,7 @@ const {CODES, createError, createNotExistError} = require('./errorHelpers');
 
 /**
  * @param {DeviceManager} devicesManager  DeviceManager instance
- * @param {function}      isFileReady     calls with (device, rellativePath) to check if read is possible for this file
+ * @param {function}      isFileReady     calls with (device, relativePath) to check if read is possible for this file
  * @param {fs}            fs              link to nodejs fs module
  */
 class MergedFs extends EventEmitter {
@@ -323,7 +323,7 @@ class MergedFs extends EventEmitter {
               return done(null);
             }
           }),
-        (done) => this.devicesManager.getDeviceForWrite(done), //TODO remane, add s
+        (done) => this.devicesManager.getDeviceForWrite(done), //TODO rename, add s
         (devices, done) => done(null, devices[0]),
         (device, done) => done(null, device, join(device, relativePath)),
         (device, resolvedDevicePath, done) =>

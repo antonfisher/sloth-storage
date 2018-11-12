@@ -12,7 +12,7 @@ let ftpServer;
 let devicesManager;
 let replicator;
 
-const REPLICATION_COUNT = 2;
+const DEFAULT_REPLICATION_COUNT = 2;
 
 const ftpServerOptions = {
   host: process.env.IP || '127.0.0.1',
@@ -98,14 +98,30 @@ parseCliArgs(
       isFileReady: (dev, relativePath) => replicator.isReady(dev, relativePath)
     });
 
-    replicator = new Replicator({devicesManager, mergedFs, replicationCount: REPLICATION_COUNT})
+    replicator = new Replicator({devicesManager, mergedFs, replicationCount: DEFAULT_REPLICATION_COUNT})
       .on(Replicator.EVENTS.ERROR, (message) => logger.error(`[Replicator] ${message}`))
       .on(Replicator.EVENTS.WARN, (message) => logger.warn(`[Replicator] ${message}`))
       .on(Replicator.EVENTS.INFO, (message) => logger.info(`[Replicator] ${message}`))
       .on(Replicator.EVENTS.VERBOSE, (message) => logger.verbose(`[Replicator] ${message}`))
+      .on(Replicator.EVENTS.REPLICATION_STARTED, (message) => logger.info(`[Replicator] ${message}`))
+      .on(Replicator.EVENTS.REPLICATION_FINISHED, (message) => logger.info(`[Replicator] ${message}`))
       .on(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, (value) => logger.info(`[Replicator] queue length: ${value}`));
 
     mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (dev, relativePath) => replicator.onFileUpdate(dev, relativePath));
+
+    // const t = () => {
+    //   setTimeout(() => {
+    //     replicator.setReplicationCount(3);
+    //     setTimeout(() => {
+    //       replicator.setReplicationCount(1);
+    //       setTimeout(() => {
+    //         replicator.setReplicationCount(2);
+    //         setTimeout(t, 10 * 1000);
+    //       }, 10 * 1000);
+    //     }, 10 * 1000);
+    //   }, 10 * 1000);
+    // };
+    // t();
 
     logger.info('Starting FTP server...');
     ftpServer = new FtpServer(ftpServerOptions.host, {

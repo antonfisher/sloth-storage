@@ -4,6 +4,7 @@ const EventEmitter = require('events');
 const async = require('async');
 
 const {CODES} = require('./errorHelpers');
+const utils = require('./utils');
 
 const DEFAULT_IDLE_TIMEOUT = 100;
 
@@ -32,6 +33,7 @@ class Replicator extends EventEmitter {
     this._map = {};
     this._lastQueueLength = 0;
 
+    this._globalIsReady = false;
     this._replicateNextTimeout = null;
     this._startReplicateWorker();
   }
@@ -40,21 +42,105 @@ class Replicator extends EventEmitter {
     this._addToQueue(updatedDevice, updatedRelativePath);
   }
 
+  // sync for now
   setReplicationCount(value) {
-    if (value > this.replicationCount) {
-      this.replicationCount = value;
-      //this._stopReplicateWorker();
-      //this._addFilesToQueue(this._startReplicateWorker); //TODO implement
+    if (value === this.replicationCount) {
+      return;
     }
+
+    this._stopReplicateWorker();
+
+    const oldValue = this.replicationCount;
+    this.replicationCount = value;
+
+    const logMessage = `Change replication count from ${oldValue} to ${value}:`;
+    this.emit(Replicator.EVENTS.REPLICATION_STARTED, `${logMessage} start process...`);
+
+    const fileMap = {};
+    const devices = this.devicesManager.getDevices();
+    let directoryList = devices.map((dev) => ({device: dev, path: ''}));
+
+    // find all filed in all directories :0
+    while (directoryList.length > 0) {
+      const length = directoryList.length;
+      directoryList.forEach((dir) => this._traverseDirectory(dir, directoryList, fileMap, logMessage));
+      directoryList = directoryList.slice(length);
+    }
+
+    const fileList = Object.entries(fileMap);
+    this.emit(Replicator.EVENTS.INFO, `${logMessage} ${fileList.length} file(s) found`);
+
+    fileList.forEach((file) => {
+      const [relativePath, devs] = file;
+      if (this.replicationCount > oldValue) {
+        // duplicate file for get required replication count
+        const devicesToUse = utils.shuffleArray(devices.filter((dev) => !devs.includes(dev)));
+        for (let i = 0; i < this.replicationCount - devs.length && i < devicesToUse.length; i++) {
+          const sourceFile = join(devs[utils.getRandomIntInclusive(0, devs.length - 1)], relativePath);
+          const destinationFile = join(devicesToUse[i], relativePath);
+          try {
+            this.fs.copyFileSync(sourceFile, destinationFile);
+          } catch (e) {
+            this.emit(
+              Replicator.EVENTS.ERROR,
+              `${logMessage} failed to copy from "${sourceFile}" to "${destinationFile}": ${e}`
+            );
+          }
+        }
+      } else {
+        // remove redundant file's copies
+        const devicesToUse = utils.shuffleArray([...devs]);
+        for (let i = 0; i < devs.length - this.replicationCount && i < devicesToUse.length; i++) {
+          const deleteFile = join(devs[i], relativePath);
+          try {
+            this.fs.unlinkSync(deleteFile);
+          } catch (e) {
+            this.emit(Replicator.EVENTS.ERROR, `${logMessage} failed to delete file from device "${deleteFile}: ${e}`);
+          }
+        }
+      }
+    });
+
+    this._startReplicateWorker();
+    this.emit(Replicator.EVENTS.REPLICATION_FINISHED, `${logMessage} [DONE]`);
   }
 
   _startReplicateWorker() {
     this._replicateNextTimeout = setTimeout(() => this._replicateNext(), this.idleTimeout);
+    this._globalIsReady = true;
+    this.emit(Replicator.EVENTS.INFO, `replication worker started`);
   }
 
   _stopReplicateWorker() {
+    this._globalIsReady = false;
     clearTimeout(this._replicateNextTimeout);
     this._replicateNextTimeout = null;
+    this.emit(Replicator.EVENTS.INFO, `replication worker stopped`);
+  }
+
+  _traverseDirectory(dir, directoryList, filesMap, logMessage = '_traverseDirectory()') {
+    const fileDirFullPath = join(dir.device, dir.path);
+    try {
+      this.fs.readdirSync(fileDirFullPath).forEach((file) => {
+        const fileFullPath = join(fileDirFullPath, file);
+        try {
+          if (this.fs.statSync(fileFullPath).isDirectory()) {
+            directoryList.push({device: dir.device, path: join(dir.path, file)});
+          } else {
+            const relativeFilePath = join(dir.path, file);
+            if (typeof filesMap[relativeFilePath] === 'undefined') {
+              filesMap[relativeFilePath] = [dir.device];
+            } else {
+              filesMap[relativeFilePath].push(dir.device);
+            }
+          }
+        } catch (e) {
+          this.emit(Replicator.EVENTS.ERROR, `${logMessage} failed to get "${fileFullPath}" file stats: ${e}`);
+        }
+      });
+    } catch (e) {
+      this.emit(Replicator.EVENTS.ERROR, `${logMessage} failed to read directory ${fileDirFullPath}: ${e}`);
+    }
   }
 
   _replicateNext() {
@@ -70,11 +156,6 @@ class Replicator extends EventEmitter {
       const sourcePath = join(device, relativePath);
       async.waterfall(
         [
-          //TODO consider to:
-          // - delete files if count more than replicationCount
-          // - replicate files if count less than replicationCount
-
-          // get all existing devices
           (done) => this.devicesManager.getDeviceForWrite(done),
           (devices, done) => {
             let replicateToDevices = [];
@@ -121,12 +202,13 @@ class Replicator extends EventEmitter {
             )
         ],
         (err) => {
+          const [device, relativePath] = this._popFromQueue();
           if (err) {
             this.emit(Replicator.EVENTS.ERROR, `Cannot replicate file ${sourcePath}: ${err}`);
+            this._addToQueue(device, relativePath); // try to replicate this file later?
           } else {
             this.emit(Replicator.EVENTS.INFO, `${sourcePath} replications is completed`);
           }
-          this._popFromQueue();
           this._replicateNextTimeout = setTimeout(() => this._replicateNext(), this.idleTimeout);
         }
       );
@@ -156,14 +238,16 @@ class Replicator extends EventEmitter {
   }
 
   isReady(device, relativePath) {
-    if (this._map[relativePath]) {
+    if (!this._globalIsReady) {
+      return false;
+    } else if (this._map[relativePath]) {
       return this._map[relativePath] === device;
     }
     return true;
   }
 
   destroy() {
-    clearTimeout(this._replicateNextTimeout);
+    this._stopReplicateWorker();
     delete this._map;
     delete this._queue;
   }
@@ -174,7 +258,9 @@ Replicator.EVENTS = {
   WARN: 'WARN',
   ERROR: 'ERROR',
   VERBOSE: 'VERBOSE',
-  QUEUE_LENGTH_CHANGED: 'QUEUE_LENGTH_CHANGED'
+  QUEUE_LENGTH_CHANGED: 'QUEUE_LENGTH_CHANGED',
+  REPLICATION_STARTED: 'REPLICATION_STARTED',
+  REPLICATION_FINISHED: 'REPLICATION_FINISHED'
 };
 
 module.exports = Replicator;
