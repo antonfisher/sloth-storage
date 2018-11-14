@@ -15,7 +15,7 @@ const lookupDevicesInterval = 100;
 describe('replicator', () => {
   describe('#constructor', () => {
     it('should require devicesManager parameter', () => {
-      expect(() => new Replicator()).to.throwException((e) => {
+      expect(() => new Replicator({})).to.throwException((e) => {
         expect(e.message).to.contain('devicesManager');
       });
     });
@@ -84,6 +84,8 @@ describe('replicator', () => {
     let replicator;
     let mergedFs;
 
+    const defaultReplicationCount = 2;
+
     beforeEach((done) => {
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
       exec(`mkdir -p ./${testFsDir}/dev1/${storageDirName}`);
@@ -96,7 +98,12 @@ describe('replicator', () => {
         isFileReady: (dev, relativePath) => replicator.isReady(dev, relativePath)
       });
       devicesManager.on(DevicesManager.EVENTS.READY, () => {
-        replicator = new Replicator({idleTimeout: 50, mergedFs, devicesManager, replicationCount: 2});
+        replicator = new Replicator({
+          idleTimeout: 50,
+          mergedFs,
+          devicesManager,
+          replicationCount: defaultReplicationCount
+        });
         done();
       });
     });
@@ -111,21 +118,37 @@ describe('replicator', () => {
     });
 
     it('should replicate file to 2 copies', (done) => {
-      const testFileName = 'test.txt';
       const devices = devicesManager.getDevices(false);
 
-      exec(`echo "test" > ${devices[0]}/${testFileName}`);
+      // 1st dir level
+      const testFileName1 = 'test0.txt';
+      exec(`echo "test1" > ${devices[0]}/${testFileName1}`);
+
+      // 2nd dir level
+      const testDirName2 = 'test';
+      const testFileName2 = 'test1.txt';
+      exec(`mkdir ${devices[0]}/${testDirName2}`);
+      exec(`echo "test2" > ${devices[0]}/${testDirName2}/${testFileName2}`);
 
       replicator.on(Replicator.EVENTS.ERROR, (err) => done(err));
       replicator.on(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, (queueLength) => {
         if (queueLength === 0) {
-          const filesCount = Number(exec(`find ${testFsDir} -type f -name ${testFileName} | wc -l`));
-          expect(filesCount).to.be(2);
+          // 1st dir level
+          const fileCount1 = Number(exec(`find ${testFsDir} -type f -name ${testFileName1} | wc -l`));
+          expect(fileCount1).to.be(2);
+
+          // 2nd dir level
+          const dirCount2 = Number(exec(`find ${testFsDir} -type d -name ${testDirName2} | wc -l`));
+          expect(dirCount2).to.be(2);
+          const fileCount2 = Number(exec(`find ${testFsDir} -type f -name ${testFileName2} | wc -l`));
+          expect(fileCount2).to.be(2);
+
           done();
         }
       });
 
-      replicator.onFileUpdate(devices[0], testFileName);
+      replicator.onFileUpdate(devices[0], testFileName1);
+      replicator.onFileUpdate(devices[0], join(testDirName2, testFileName2));
     });
 
     it('should add files if replicationCount increased', (done) => {
@@ -137,12 +160,20 @@ describe('replicator', () => {
 
       replicator.on(Replicator.EVENTS.ERROR, (err) => done(err));
       replicator.on(Replicator.EVENTS.REPLICATION_FINISHED, () => {
-        const filesCount = Number(exec(`find ${testFsDir} -type f -name ${testFileName} | wc -l`));
-        expect(filesCount).to.be(3);
+        const fileCount = Number(exec(`find ${testFsDir} -type f -name ${testFileName} | wc -l`));
+        expect(fileCount).to.be(3);
+
+        // files should be equal
+        const content0 = String(exec(`cat ${devices[0]}/${testFileName}`));
+        const content1 = String(exec(`cat ${devices[1]}/${testFileName}`));
+        const content2 = String(exec(`cat ${devices[2]}/${testFileName}`));
+        expect(content0).to.be(content1);
+        expect(content1).to.be(content2);
+
         done();
       });
 
-      replicator.setReplicationCount(3);
+      replicator.setReplicationCount(defaultReplicationCount + 1);
     });
 
     it('should remove files if replicationCount decreased', (done) => {
@@ -154,12 +185,35 @@ describe('replicator', () => {
 
       replicator.on(Replicator.EVENTS.ERROR, (err) => done(err));
       replicator.on(Replicator.EVENTS.REPLICATION_FINISHED, () => {
-        const filesCount = Number(exec(`find ${testFsDir} -type f -name ${testFileName} | wc -l`));
-        expect(filesCount).to.be(1);
+        const fileCount = Number(exec(`find ${testFsDir} -type f -name ${testFileName} | wc -l`));
+        expect(fileCount).to.be(1);
         done();
       });
 
-      replicator.setReplicationCount(1);
+      replicator.setReplicationCount(defaultReplicationCount - 1);
+    });
+
+    it('should not do anything if replicationCount was set to the same value', (done) => {
+      replicator.on(Replicator.EVENTS.ERROR, (err) => done(err));
+      replicator.on(Replicator.EVENTS.REPLICATION_STARTED, () => done('REPLICATION_STARTED event was fired'));
+      replicator.setReplicationCount(defaultReplicationCount);
+      setTimeout(() => done(), 10);
+    });
+
+    it('Replicator.isReady() should be false during replication process', (done) => {
+      const testFileName = 'test.txt';
+      const devices = devicesManager.getDevices(false);
+
+      exec(`echo "test" > ${devices[0]}/${testFileName}`);
+
+      replicator.on(Replicator.EVENTS.ERROR, (err) => done(err));
+      replicator.on(Replicator.EVENTS.REPLICATION_STARTED, () => expect(replicator.isReady()).to.be(false));
+      replicator.on(Replicator.EVENTS.REPLICATION_FINISHED, () => {
+        expect(replicator.isReady()).to.be(true);
+        done();
+      });
+
+      replicator.setReplicationCount(defaultReplicationCount + 1);
     });
   });
 });
