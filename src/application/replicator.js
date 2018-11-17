@@ -56,15 +56,17 @@ class Replicator extends EventEmitter {
     const logMessage = `Change replication count from ${oldValue} to ${value}:`;
     this.emit(Replicator.EVENTS.REPLICATION_STARTED, `${logMessage} start process...`);
 
-    const fileMap = {};
+    const fileMap = {
+      //"relativeFilePath": [..."devicePaths"]
+    };
     const devices = this.devicesManager.getDevices();
     let directoryList = devices.map((dev) => ({device: dev, path: ''}));
 
-    // find all filed in all directories :0
+    // find all files in all directories :0
     while (directoryList.length > 0) {
       const length = directoryList.length;
       directoryList.forEach((dir) => this._traverseDirectory(dir, directoryList, fileMap, logMessage));
-      directoryList = directoryList.slice(length);
+      directoryList = directoryList.slice(length); // cut out traversed directories
     }
 
     const fileList = Object.entries(fileMap);
