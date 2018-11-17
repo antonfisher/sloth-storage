@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "os-utils": "0.0.14",
+    "rpio": "0.9.20"
+  }
+}
