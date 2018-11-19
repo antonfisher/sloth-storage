@@ -6,7 +6,7 @@ class AnalogGauge {
       throw "'pin' is required";
     }
 
-    this.pin = pin; // PWM pin (for RPIv3 it's GPIO12 and GPIO12 only)
+    this.pin = pin; // PWM pin (for RPIv3 it's GPIO12 and GPIO13 only)
     this.correction = correction || 1; // value correction coefficient (changes scale to adjust 100%)
     this.shift = shift || 0; // shifts arrow right/left to adjust 0%
 

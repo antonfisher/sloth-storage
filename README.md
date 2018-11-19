@@ -5,7 +5,7 @@
 [![GitHub license](https://img.shields.io/github/license/antonfisher/sloth-storage.svg)](https://github.com/antonfisher/sloth-storage/blob/master/LICENSE)
 
 ## Idea
-The idea is to build drive distributed storage system with FTP interface on Node.js.
+The idea is to build drive distributed storage device with FTP interface on Node.js.
 
 ## Features
 - distributes files on a bunch of USB-drives

@@ -40,6 +40,7 @@ class Hardware {
     osUtils.cpuUsage((cpuUsage) => {
       display.setValue(`${String(Math.ceil(cpuUsage * 100)).padStart(5, ' ')}%`);
       cpuAnalogGauge.setValue(cpuUsage);
+
       if (Math.random() > 0.33) {
         utilizationAnalogGauge.setValue(0);
       } else if (Math.random() > 0.5) {
