@@ -23,7 +23,7 @@ The idea is to build drive distributed storage system with FTP interface on Node
 ... or 10Gb storage (2 copies of each file).
 
 
-## Modules Hierarchy 
+## Modules Hierarchy
 ```
 +--------+
 | daemon <------+
@@ -40,6 +40,30 @@ The idea is to build drive distributed storage system with FTP interface on Node
        +--+-----------+--+
        | devices manager |
        +-----------------+
+```
+
+## Hardware
+
+### Install deps:
+
+```bash
+# install nodejs
+sudo curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+sudo apt-get install -y gcc g++ make git;
+sudo apt-get install -y nodejs
+
+# install application
+git clone https://github.com/antonfisher/sloth-storage.git
+cd sloth-storage
+npm install
+
+# display + gpio configuration
+curl -sS https://get.pimoroni.com/microdotphat | bash # https://pinout.xyz/pinout/micro_dot_phat
+sudo cat >/etc/udev/rules.d/20-gpiomem.rules <<EOF
+SUBSYSTEM=="bcm2835-gpiomem", KERNEL=="gpiomem", GROUP="gpio", MODE="0660"
+EOF
+sudo usermod -a -G gpio pi
+sudo usermod -a -G gpio root
 ```
 
 ## Current stage

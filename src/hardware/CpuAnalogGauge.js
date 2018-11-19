@@ -1,19 +1,12 @@
 const AnalogGauge = require('./drivers/AnalogGauge');
 
-const CPU_ANALOG_GAUGE_PIN = 12;
+const ANALOG_GAUGE_PIN = 12;
+const ANALOG_GAUGE_CORRECTION = 0.9;
 
-function CpuAnalogGauge() {
-  this.analogGauge = new AnalogGauge(CPU_ANALOG_GAUGE_PIN);
-  return this;
+class CpuAnalogGauge extends AnalogGauge {
+  constructor() {
+    super(ANALOG_GAUGE_PIN, ANALOG_GAUGE_CORRECTION);
+  }
 }
-
-CpuAnalogGauge.prototype.setValue = function(value) {
-  return this.analogGauge.setValue(value);
-};
-
-CpuAnalogGauge.prototype.destroy = function() {
-  this.analogGauge.destroy();
-  delete this.analogGauge;
-};
 
 module.exports = CpuAnalogGauge;

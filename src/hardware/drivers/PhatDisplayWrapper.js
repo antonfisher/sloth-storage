@@ -1,52 +1,52 @@
 const {resolve} = require('path');
 const {spawn} = require('child_process');
 
+const pythonDriverPath = resolve(__dirname, 'PhatDisplayDriver.py');
+
 function jsonToStdoutString(json) {
   return `${JSON.stringify(json)}\n`;
 }
 
-function PhatDisplayWrapper() {
-  const pythonDriverPath = resolve(__dirname, 'PhatDisplayDriver.py');
+class PhatDisplayWrapper {
+  constructor() {
+    this._pythonDriverProcess = spawn('python', [pythonDriverPath]);
+    this._pythonDriverProcess.on('error', (err) => {
+      throw `[PhatDisplayWrapper] python child process error: ${err}`;
+    });
+    this._pythonDriverProcess.on('close', (code) => {
+      if (code !== 0) {
+        throw `[PhatDisplayWrapper] python child process exits with non-zero code: ${code}`;
+      }
+    });
 
-  console.log(`[PhatDisplayWrapper] spawn python driver: ${pythonDriverPath}`);
+    this.setup();
+  }
 
-  this._pythonDriverProcess = spawn('python', [resolve(__dirname, 'PhatDisplayDriver.py')]);
+  setup() {
+    this.writeString('------');
+  }
 
-  this._pythonDriverProcess.on('error', (err) => {
-    throw `[PhatDisplayWrapper] python child process error: ${err}`;
-  });
+  writeString(str) {
+    this._pythonDriverProcess.stdin.write(
+      jsonToStdoutString({
+        cmd: 'write_string',
+        arg: str
+      })
+    );
+  }
 
-  this._pythonDriverProcess.on('close', (code) => {
-    if (code !== 0) {
-      throw `[PhatDisplayWrapper] python child process exits with non-zero code: ${code}`;
-    }
-  });
+  clear() {
+    this._pythonDriverProcess.stdin.write(
+      jsonToStdoutString({
+        cmd: 'clear'
+      })
+    );
+  }
 
-  this.writeString('*INIT*');
-
-  return this;
+  destroy() {
+    this.clear();
+    this._pythonDriverProcess.kill();
+  }
 }
-
-PhatDisplayWrapper.prototype.writeString = function(str) {
-  this._pythonDriverProcess.stdin.write(
-    jsonToStdoutString({
-      cmd: 'write_string',
-      arg: str
-    })
-  );
-};
-
-PhatDisplayWrapper.prototype.clear = function() {
-  this._pythonDriverProcess.stdin.write(
-    jsonToStdoutString({
-      cmd: 'clear'
-    })
-  );
-};
-
-PhatDisplayWrapper.prototype.destroy = function() {
-  this.clear();
-  this._pythonDriverProcess.kill();
-};
 
 module.exports = PhatDisplayWrapper;
