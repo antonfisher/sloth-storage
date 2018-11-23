@@ -26,10 +26,10 @@ class PhatDisplayWrapper {
     this.writeString('------');
   }
 
-  writeString(str) {
+  writeString(str, scroll) {
     this._pythonDriverProcess.stdin.write(
       jsonToStdoutString({
-        cmd: 'write_string',
+        cmd: scroll ? 'write_string_scroll' : 'write_string',
         arg: str
       })
     );
