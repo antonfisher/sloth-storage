@@ -29,7 +29,7 @@ class Selector extends EventEmitter {
   }
 
   _onSelect(pin) {
-    this.emit(this.pinsMap[pin]);
+    this.emit('select', this.pinsMap[pin]);
   }
 
   destroy() {

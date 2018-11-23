@@ -12,5 +12,5 @@ coverage
 
 # IDE
 .idea
-.code-workspace
 .history
+*.code-workspace

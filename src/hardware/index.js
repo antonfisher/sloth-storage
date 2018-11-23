@@ -4,6 +4,8 @@ const rpio = require('rpio');
 const Display = require('./Display');
 const CpuAnalogGauge = require('./CpuAnalogGauge');
 const UtilizationAnalogGauge = require('./UtilizationAnalogGauge');
+const DisplaySelector = require('./DisplaySelector');
+const ReplicationsSelector = require('./ReplicationsSelector');
 
 const UPDATE_INTERVAL = 1 * 1000;
 
@@ -13,7 +15,7 @@ class Hardware {
     this._taskUpdateCpuUsageInterval = null;
 
     this.setup();
-    this.startStats();
+    this.startCPUStatsTask();
   }
 
   setup() {
@@ -25,20 +27,30 @@ class Hardware {
     this.display = new Display();
     this.cpuAnalogGauge = new CpuAnalogGauge();
     this.utilizationAnalogGauge = new UtilizationAnalogGauge();
+
+    this.displaySelector = new DisplaySelector();
+    this.displaySelector.on('select', (operation) => {
+      this.display.writeString(`DS: ${operation}`, true); // debug
+    });
+
+    this.replicationsSelector = new ReplicationsSelector();
+    this.replicationsSelector.on('select', (operation) => {
+      this.display.writeString(`RS: ${operation}`, true); // debug
+    });
   }
 
-  startStats() {
+  startCPUStatsTask() {
     this._taskUpdateCpuUsageInterval = setInterval(this._taskUpdateCpuUsage, UPDATE_INTERVAL);
   }
 
-  stopStats() {
+  stopCPUStatsTask() {
     clearInterval(this._taskUpdateCpuUsageInterval);
     this._taskUpdateCpuUsageInterval = null;
   }
 
   _taskUpdateCpuUsage() {
     osUtils.cpuUsage((cpuUsage) => {
-      display.setValue(`${String(Math.ceil(cpuUsage * 100)).padStart(5, ' ')}%`);
+      display.writeString(`${String(Math.ceil(cpuUsage * 100)).padStart(5, ' ')}%`); //debug
       cpuAnalogGauge.setValue(cpuUsage);
 
       if (Math.random() > 0.33) {
@@ -52,6 +64,8 @@ class Hardware {
   }
 
   destroy() {
+    this.displaySelector.destroy();
+    this.replicationsSelector.destroy();
     this.display.destroy();
     this.cpuAnalogGauge.destroy();
     this.utilizationAnalogGauge.destroy();
