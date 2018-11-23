@@ -27,6 +27,7 @@ describe('devicesManager', () => {
     let devicesManager;
 
     beforeEach(() => {
+      exec(`rm -rf ./${testFsDir}`);
       exec(`mkdir -p ./${testFsDir}/dev{1,2}`);
       exec(`mkdir -p ./${testFsDir}/dev1/${storageDirName}`);
       exec(`mkdir -p ./${testFsDir}/dev2/${storageDirName}`);
