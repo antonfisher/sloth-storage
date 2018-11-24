@@ -26,11 +26,22 @@ class PhatDisplayWrapper {
     this.writeString('------');
   }
 
-  writeString(str, scroll) {
+  writeString(str) {
     this._pythonDriverProcess.stdin.write(
       jsonToStdoutString({
-        cmd: scroll ? 'write_string_scroll' : 'write_string',
-        arg: str
+        cmd: 'write_string',
+        arg1: str
+      })
+    );
+  }
+
+  setPixel(x, y, v) {
+    this._pythonDriverProcess.stdin.write(
+      jsonToStdoutString({
+        cmd: 'set_pixel',
+        arg1: Number(x),
+        arg2: Number(y),
+        arg3: Boolean(v)
       })
     );
   }

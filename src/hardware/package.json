@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "ip": "1.1.5",
     "os-utils": "0.0.14",
     "rpio": "0.9.20"
   }

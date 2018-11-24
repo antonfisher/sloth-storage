@@ -1,13 +1,13 @@
 const osUtils = require('os-utils');
 const rpio = require('rpio');
 
+const LedIO = require('./LedIO');
+const LedError = require('./LedError');
 const Display = require('./Display');
-const CpuAnalogGauge = require('./CpuAnalogGauge');
-const UtilizationAnalogGauge = require('./UtilizationAnalogGauge');
-const DisplaySelector = require('./DisplaySelector');
-const ReplicationsSelector = require('./ReplicationsSelector');
-
-const UPDATE_INTERVAL = 1 * 1000;
+const AnalogGaugeCpu = require('./AnalogGaugeCpu');
+const AnalogGaugeUtilization = require('./AnalogGaugeUtilization');
+const SelectorDisplay = require('./SelectorDisplay');
+const SelectorReplications = require('./SelectorReplications');
 
 class Hardware {
   constructor() {
@@ -15,60 +15,49 @@ class Hardware {
     this._taskUpdateCpuUsageInterval = null;
 
     this.setup();
-    this.startCPUStatsTask();
   }
 
   setup() {
     rpio.init({
       gpiomem: false,
-      mapping: 'gpio'
+      mapping: 'physical'
     });
 
     this.display = new Display();
-    this.cpuAnalogGauge = new CpuAnalogGauge();
-    this.utilizationAnalogGauge = new UtilizationAnalogGauge();
 
-    this.displaySelector = new DisplaySelector();
-    this.displaySelector.on('select', (operation) => {
-      this.display.writeString(`DS: ${operation}`, true); // debug
+    this.ledIO = new LedIO();
+    this.ledError = new LedError();
+
+    this.analogGaugeCpu = new AnalogGaugeCpu();
+    this.analogGaugeUtilization = new AnalogGaugeUtilization();
+
+    //debug -----
+    setInterval(() => {
+      this.analogGaugeUtilization.setValue(new Date().getSeconds() / 59);
+    }, 1000);
+    //-----------
+
+    this.selectorDisplay = new SelectorDisplay();
+    this.selectorDisplay.on('select', (operation) => {
+      this.display.setMode(operation);
+      this.ledError.setValue(operation === SelectorDisplay.OPTIONS.ERROR);
+      this.ledIO.setValue(operation === SelectorDisplay.OPTIONS.SYNC_STATUS);
     });
 
-    this.replicationsSelector = new ReplicationsSelector();
-    this.replicationsSelector.on('select', (operation) => {
-      this.display.writeString(`RS: ${operation}`, true); // debug
-    });
-  }
-
-  startCPUStatsTask() {
-    this._taskUpdateCpuUsageInterval = setInterval(this._taskUpdateCpuUsage, UPDATE_INTERVAL);
-  }
-
-  stopCPUStatsTask() {
-    clearInterval(this._taskUpdateCpuUsageInterval);
-    this._taskUpdateCpuUsageInterval = null;
-  }
-
-  _taskUpdateCpuUsage() {
-    osUtils.cpuUsage((cpuUsage) => {
-      display.writeString(`${String(Math.ceil(cpuUsage * 100)).padStart(5, ' ')}%`); //debug
-      cpuAnalogGauge.setValue(cpuUsage);
-
-      if (Math.random() > 0.33) {
-        utilizationAnalogGauge.setValue(0);
-      } else if (Math.random() > 0.5) {
-        utilizationAnalogGauge.setValue(0.5);
-      } else {
-        utilizationAnalogGauge.setValue(1);
-      }
+    this.selectorReplications = new SelectorReplications();
+    this.selectorReplications.on('select', (operation) => {
+      this.display.writeString(`RS:${operation}`); // debug
     });
   }
 
   destroy() {
-    this.displaySelector.destroy();
-    this.replicationsSelector.destroy();
+    this.ledIO.destroy();
+    this.ledError.destroy();
+    this.selectorDisplay.destroy();
+    this.selectorReplications.destroy();
+    this.analogGaugeCpu.destroy();
+    this.analogGaugeUtilization.destroy();
     this.display.destroy();
-    this.cpuAnalogGauge.destroy();
-    this.utilizationAnalogGauge.destroy();
   }
 }
 

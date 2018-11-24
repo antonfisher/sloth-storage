@@ -12,11 +12,14 @@ class Selector extends EventEmitter {
    *    }
    */
   constructor(pinsMap) {
+    super();
+
     if (typeof pinsMap === 'undefined') {
       throw "'pinsMap' is required";
     }
 
     this.pinsMap = pinsMap;
+    this.selectedPin = null;
 
     this.setup();
   }
@@ -24,12 +27,23 @@ class Selector extends EventEmitter {
   setup() {
     Object.keys(this.pinsMap).forEach((pin) => {
       rpio.open(pin, rpio.INPUT, rpio.PULL_DOWN);
-      rpio.poll(pin, () => this._onSelect(pin), rpio.POLL_LOW);
+      rpio.poll(pin, () => this._onSelect(pin), rpio.POLL_HIGH);
+      if (rpio.read(pin)) {
+        setTimeout(() => this._onSelect(pin), 10);
+      }
     });
   }
 
+  getSelected() {
+    return this.selectedPin;
+  }
+
   _onSelect(pin) {
-    this.emit('select', this.pinsMap[pin]);
+    if (this.selectedPin !== pin) {
+      console.log('## SELECT', pin);
+      this.selectedPin = pin;
+      this.emit('select', this.pinsMap[pin]);
+    }
   }
 
   destroy() {

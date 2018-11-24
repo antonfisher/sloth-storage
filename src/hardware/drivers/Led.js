@@ -17,7 +17,7 @@ class Led {
   }
 
   setValue(value) {
-    rpio.write(this.pin, Boolean(value));
+    rpio.write(this.pin, Boolean(value) ? rpio.HIGH : rpio.LOW);
   }
 
   destroy() {

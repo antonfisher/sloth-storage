@@ -64,6 +64,8 @@ SUBSYSTEM=="bcm2835-gpiomem", KERNEL=="gpiomem", GROUP="gpio", MODE="0660"
 EOF
 sudo usermod -a -G gpio pi
 sudo usermod -a -G gpio root
+sudo echo "America/Los_Angeles" > /etc/timezone
+sudo dpkg-reconfigure tzdata
 ```
 
 ## Current stage
