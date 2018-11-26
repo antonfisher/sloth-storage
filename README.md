@@ -56,6 +56,9 @@ sudo apt-get install -y nodejs
 git clone https://github.com/antonfisher/sloth-storage.git
 cd sloth-storage
 npm install
+cd src/hardware
+npm install
+cd -
 
 # display + gpio configuration
 curl -sS https://get.pimoroni.com/microdotphat | bash # https://pinout.xyz/pinout/micro_dot_phat
@@ -68,11 +71,28 @@ sudo echo "America/Los_Angeles" > /etc/timezone
 sudo dpkg-reconfigure tzdata
 ```
 
+## Usage
+
+```bash
+# run only application
+npm start
+
+# set different device path (not /media/<USER>)
+npm start -- --devices-path <path>
+
+# show full help
+npm start -- --help
+
+# run on RPI
+npm start -- --rpi
+```
+
 ## Current stage
 - [x] research
 - [x] proof-of-concept building
-- [ ] **main codebase and tests**
-- [ ] hardware assembling
+- [x] main codebase and tests
+- [x] hardware assembling
+- [ ] **run/debug**
 
 ## License
 MIT License. Free use and change.

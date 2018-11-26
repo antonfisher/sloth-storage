@@ -1,48 +1,13 @@
 const {join} = require('path');
-const {FtpServer} = require('ftpd');
 
 const {version, description, homepage} = require('../package.json');
-const logger = require('./application/logger');
-const DevicesManager = require('./application/devicesManager');
-const MergedFs = require('./application/mergedFs');
-const Replicator = require('./application/replicator');
-const parseCliArgs = require('./application/parseCliArgs');
+const logger = require('./logger');
+const Hardware = require('./hardware');
+const Application = require('./application');
+const parseCliArgs = require('./parseCliArgs');
 
-let ftpServer;
-let devicesManager;
-let replicator;
-
-const DEFAULT_REPLICATION_COUNT = 2;
-
-const ftpServerOptions = {
-  host: process.env.IP || '127.0.0.1',
-  port: process.env.PORT || 7002,
-  tls: null
-};
-
-function cleanUp() {
-  if (ftpServer) {
-    try {
-      ftpServer.close();
-    } catch (e) {
-      logger.error(e);
-    }
-  }
-  if (devicesManager) {
-    try {
-      devicesManager.destroy();
-    } catch (e) {
-      logger.error(e);
-    }
-  }
-  if (replicator) {
-    try {
-      replicator.destroy();
-    } catch (e) {
-      logger.error(e);
-    }
-  }
-}
+let hardware;
+let application;
 
 function onUnhandledError(err) {
   try {
@@ -57,12 +22,24 @@ function onUnhandledError(err) {
 
 process.on('unhandledRejection', onUnhandledError);
 process.on('uncaughtException', onUnhandledError);
-
 process.on('SIGINT', function() {
   logger.info('Exit...');
   cleanUp();
   process.exit();
 });
+
+function cleanUp() {
+  try {
+    application.destroy();
+  } catch (e) {
+    logger.warn(`cannot destroy application class: ${e}`);
+  }
+  try {
+    hardware.destroy();
+  } catch (e) {
+    logger.warn(`cannot destroy hardware class: ${e}`);
+  }
+}
 
 parseCliArgs(
   {
@@ -72,6 +49,8 @@ parseCliArgs(
     version
   },
   (cliOptions) => {
+    const rpi = Boolean(cliOptions.rpi);
+
     let devicesPath = null;
 
     if (cliOptions.devicesPath) {
@@ -84,89 +63,39 @@ parseCliArgs(
       logger.info(`Lookup for storage devices in this path: ${devicesPath} (auto discovered Ubuntu media folder)`);
     }
 
-    devicesManager = new DevicesManager({devicesPath})
-      .on(DevicesManager.EVENTS.ERROR, (message) => logger.error(`[DevicesManager] ${message}`))
-      .on(DevicesManager.EVENTS.WARN, (message) => logger.warn(`[DevicesManager] ${message}`))
-      .on(DevicesManager.EVENTS.INFO, (message) => logger.info(`[DevicesManager] ${message}`))
-      .on(DevicesManager.EVENTS.VERBOSE, (message) => logger.verbose(`[DevicesManager] ${message}`))
-      .on(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, (percent) =>
-        logger.info(`[DevicesManager] Storage utilization changed: ${(percent * 100).toFixed(1)}%`)
-      );
+    let replicationCount;
+    if (rpi) {
+      hardware = new Hardware();
+      hardware.ledIO.setValue(true);
+      replicationCount = hardware.selectorReplications.getValue();
+    }
 
-    const mergedFs = new MergedFs({
-      devicesManager,
-      isFileReady: (dev, relativePath) => replicator.isReady(dev, relativePath)
+    application = new Application({
+      logger,
+      replicationCount,
+      devicesPath
+    });
+    application.on(Application.EVENTS.READY, () => {
+      if (rpi) {
+        hardware.ledIO.setValue(false);
+      }
     });
 
-    replicator = new Replicator({devicesManager, mergedFs, replicationCount: DEFAULT_REPLICATION_COUNT})
-      .on(Replicator.EVENTS.ERROR, (message) => logger.error(`[Replicator] ${message}`))
-      .on(Replicator.EVENTS.WARN, (message) => logger.warn(`[Replicator] ${message}`))
-      .on(Replicator.EVENTS.INFO, (message) => logger.info(`[Replicator] ${message}`))
-      .on(Replicator.EVENTS.VERBOSE, (message) => logger.verbose(`[Replicator] ${message}`))
-      .on(Replicator.EVENTS.REPLICATION_STARTED, (message) => logger.info(`[Replicator] ${message}`))
-      .on(Replicator.EVENTS.REPLICATION_FINISHED, (message) => logger.info(`[Replicator] ${message}`))
-      .on(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, (value) => logger.info(`[Replicator] queue length: ${value}`));
-
-    mergedFs.on(MergedFs.EVENTS.FILE_UPDATED, (dev, relativePath) => replicator.onFileUpdate(dev, relativePath));
-
-    // const t = () => {
-    //   setTimeout(() => {
-    //     replicator.setReplicationCount(3);
-    //     setTimeout(() => {
-    //       replicator.setReplicationCount(1);
-    //       setTimeout(() => {
-    //         replicator.setReplicationCount(2);
-    //         setTimeout(t, 10 * 1000);
-    //       }, 10 * 1000);
-    //     }, 10 * 1000);
-    //   }, 10 * 1000);
-    // };
-    // t();
-
-    logger.info('Starting FTP server...');
-    ftpServer = new FtpServer(ftpServerOptions.host, {
-      pasvPortRangeStart: 1025,
-      pasvPortRangeEnd: 1050,
-      tlsOptions: ftpServerOptions.tls,
-      allowUnauthorizedTls: true,
-      useWriteFile: false, // unstable
-      useReadFile: false, // unstable
-      //useWriteFile: true, // trouble with big files
-      //useReadFile: true, // trouble with big files
-      uploadMaxSlurpSize: 32 * 1024 * 1024 * 1024, // N/A unless 'useWriteFile' is true.
-      getInitialCwd: () => '/',
-      getRoot: () => '/'
-    });
-
-    ftpServer.on('error', (error) => {
-      logger.error('FTP Server error:', error);
-    });
-
-    ftpServer.on('client:connected', (connection) => {
-      let username = null;
-
-      logger.info(`client connected: ${connection.remoteAddress}`);
-      connection.on('command:user', (user, success, failure) => {
-        if (user) {
-          username = user;
-          success();
+    if (rpi) {
+      // on/off switch
+      hardware.switchOnOff.on('switch', (value) => {
+        logger.info(`on/off switch triggered: ${value}`);
+        if (value) {
+          application.startFtpServer();
+          hardware.ledIO.blinkOnce();
         } else {
-          failure();
+          application.stopFtpServer();
+          hardware.ledIO.blinkOnce();
+          setTimeout(() => {
+            hardware.ledIO.blinkOnce();
+          }, 1000);
         }
       });
-
-      connection.on('command:pass', (pass, success, failure) => {
-        if (pass) {
-          success(username, mergedFs);
-        } else {
-          failure();
-        }
-      });
-    });
-
-    ftpServer.debugging = 4;
-    ftpServer.listen(ftpServerOptions.port);
-
-    logger.info(`FTP server is listening on port ${ftpServerOptions.port}`);
+    }
   }
 );

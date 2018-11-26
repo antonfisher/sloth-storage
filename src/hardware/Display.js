@@ -3,12 +3,27 @@ const ip = require('ip');
 const PhatDisplayWrapper = require('./drivers/PhatDisplayWrapper');
 const SelectorDisplay = require('./SelectorDisplay');
 
-const CLOCK_UPDATE_INTERVAL = 1 * 1000;
+const DISPLAY_UPDATE_INTERVAL = 250;
+
+const CLOCK_UPDATE_INTERVAL = 1000;
 const SCROLL_UPDATE_INTERVAL = 500;
 
 class Display extends PhatDisplayWrapper {
   constructor() {
     super();
+
+    this.buffer = {
+      [SelectorDisplay.OPTIONS.CAPACITY_FREE]: 'free',
+      [SelectorDisplay.OPTIONS.CAPACITY_TOTAL]: 'total',
+      [SelectorDisplay.OPTIONS.CAPACITY_USED]: 'used',
+      [SelectorDisplay.OPTIONS.TIME]: 'time',
+      [SelectorDisplay.OPTIONS.ERROR]: 'error',
+      [SelectorDisplay.OPTIONS.SYNC_STATUS]: 'sync',
+      [SelectorDisplay.OPTIONS.DRIVES]: 'drives',
+      [SelectorDisplay.OPTIONS.IP]: 'ip'
+    };
+
+    this._startUpdater();
   }
 
   setMode(operation) {
@@ -16,16 +31,30 @@ class Display extends PhatDisplayWrapper {
     this._stopScrollIp();
     this.clear();
 
+    this.selected = operation;
     if (operation === SelectorDisplay.OPTIONS.TIME) {
       this._startClock();
     } else if (operation === SelectorDisplay.OPTIONS.IP) {
       this._startScrollIp();
-    } else {
-      this.writeString(`DS:${operation}`);
     }
   }
 
-  _printIp() {
+  _startUpdater() {
+    this._stopUpdater();
+    this._updaterInterval = setInterval(() => {
+      if (this.buffer[this.selected]) {
+        this.writeString(this.buffer[this.selected]);
+      } else {
+        this.writeString(`?${this.selected}`);
+      }
+    }, DISPLAY_UPDATE_INTERVAL);
+  }
+
+  _stopUpdater() {
+    clearInterval(this._updaterInterval);
+  }
+
+  _getIp() {
     const address = ip.address() || 'unknown';
 
     this._printIpShift = this._printIpShift || 0;
@@ -33,15 +62,14 @@ class Display extends PhatDisplayWrapper {
       this._printIpShift = 0;
     }
 
-    this.writeString(address.slice(this._printIpShift));
-
+    this.buffer[SelectorDisplay.OPTIONS.IP] = address.slice(this._printIpShift);
     this._printIpShift++;
   }
 
   _startScrollIp() {
     this._stopScrollIp();
-    this._printIp();
-    this._scrollIpInterval = setInterval(() => this._printIp(), SCROLL_UPDATE_INTERVAL);
+    this._getIp();
+    this._scrollIpInterval = setInterval(() => this._getIp(), SCROLL_UPDATE_INTERVAL);
   }
 
   _stopScrollIp() {
@@ -50,14 +78,14 @@ class Display extends PhatDisplayWrapper {
     this._printIpShift = 0;
   }
 
-  _printClock() {
-    this.writeString(new Date().toLocaleTimeString('de-DE').replace(/:/g, ''));
+  _getTime() {
+    this.buffer[SelectorDisplay.OPTIONS.TIME] = new Date().toLocaleTimeString('de-DE').replace(/:/g, '');
   }
 
   _startClock() {
     this._stopClock();
-    this._printClock();
-    this._clockInterval = setInterval(() => this._printClock(), CLOCK_UPDATE_INTERVAL);
+    this._getTime();
+    this._clockInterval = setInterval(() => this._getTime(), CLOCK_UPDATE_INTERVAL);
   }
 
   _stopClock() {

@@ -4,7 +4,7 @@ const rpio = require('rpio');
 
 class Selector extends EventEmitter {
   /**
-   *  @argument {String} pinsMap - key: "PRI_GPIO_pin", value: "even_name"
+   *  @argument {Object} pinsMap - key: "PRI_GPIO_pin", value: "even_name"
    *    Example:
    *    {
    *      10: "EVENT_1_NAME"
@@ -40,7 +40,6 @@ class Selector extends EventEmitter {
 
   _onSelect(pin) {
     if (this.selectedPin !== pin) {
-      console.log('## SELECT', pin);
       this.selectedPin = pin;
       this.emit('select', this.pinsMap[pin]);
     }

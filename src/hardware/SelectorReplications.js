@@ -20,6 +20,11 @@ class SelectorReplications extends Selector {
   constructor() {
     super(PIN_MAP);
   }
+
+  getValue() {
+    const pin = super.getSelected();
+    return OPTIONS[pin];
+  }
 }
 
 SelectorReplications.OPTIONS = OPTIONS;

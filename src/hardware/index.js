@@ -1,17 +1,20 @@
-const osUtils = require('os-utils');
+const EventEmitter = require('events');
+
 const rpio = require('rpio');
 
 const LedIO = require('./LedIO');
 const LedError = require('./LedError');
 const Display = require('./Display');
+const SwitchOnOff = require('./SwitchOnOff');
 const AnalogGaugeCpu = require('./AnalogGaugeCpu');
 const AnalogGaugeUtilization = require('./AnalogGaugeUtilization');
 const SelectorDisplay = require('./SelectorDisplay');
 const SelectorReplications = require('./SelectorReplications');
 
-class Hardware {
+class Hardware extends EventEmitter {
   constructor() {
-    // timers
+    super();
+
     this._taskUpdateCpuUsageInterval = null;
 
     this.setup();
@@ -48,6 +51,11 @@ class Hardware {
     this.selectorReplications.on('select', (operation) => {
       this.display.writeString(`RS:${operation}`); // debug
     });
+
+    this.switchOnOff = new SwitchOnOff();
+    this.switchOnOff.on('switch', (value) => {
+      console.log('## switch', value);
+    });
   }
 
   destroy() {
@@ -61,5 +69,4 @@ class Hardware {
   }
 }
 
-//test
-const h = new Hardware();
+module.exports = Hardware;

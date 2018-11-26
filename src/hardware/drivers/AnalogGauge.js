@@ -29,6 +29,7 @@ class AnalogGauge {
   }
 
   destroy() {
+    this.setValue(0);
     rpio.close(this.pin);
   }
 }
