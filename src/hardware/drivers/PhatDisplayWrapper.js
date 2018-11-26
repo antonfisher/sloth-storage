@@ -56,7 +56,7 @@ class PhatDisplayWrapper {
 
   destroy() {
     this.clear();
-    this._pythonDriverProcess.kill();
+    setTimeout(() => this._pythonDriverProcess.kill(), 100);
   }
 }
 

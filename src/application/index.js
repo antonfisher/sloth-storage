@@ -37,6 +37,13 @@ class Application extends EventEmitter {
     this.run();
   }
 
+  setReplicationCount(value) {
+    this.replicationCount = value;
+    if (this.replicator) {
+      this.replicator.setReplicationCount(this.replicationCount);
+    }
+  }
+
   run() {
     this.devicesManager = new DevicesManager({devicesPath: this.devicesPath})
       .on(DevicesManager.EVENTS.ERROR, (message) => this.logger.error(`[DevicesManager] ${message}`))
@@ -69,10 +76,11 @@ class Application extends EventEmitter {
       this.replicator.onFileUpdate(dev, relativePath)
     );
 
-    this.logger.info('application is ready');
-    this.emit(Application.EVENTS.READY);
-
-    this.startFtpServer();
+    setTimeout(() => {
+      this.logger.info('application is ready');
+      this.emit(Application.EVENTS.READY);
+      //this.startFtpServer();
+    }, 100);
   }
 
   startFtpServer() {
@@ -91,8 +99,8 @@ class Application extends EventEmitter {
       getRoot: () => '/'
     });
 
-    this.ftpServer.on('error', (error) => {
-      this.logger.error('FTP Server error:', error);
+    this.ftpServer.on('error', (error, a, b) => {
+      this.logger.error('FTP Server error:', error, a, b);
     });
 
     this.ftpServer.on('client:connected', (connection) => {

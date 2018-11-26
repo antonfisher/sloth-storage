@@ -29,13 +29,18 @@ class Selector extends EventEmitter {
       rpio.open(pin, rpio.INPUT, rpio.PULL_DOWN);
       rpio.poll(pin, () => this._onSelect(pin), rpio.POLL_HIGH);
       if (rpio.read(pin)) {
-        setTimeout(() => this._onSelect(pin), 10);
+        this.selectedPin = pin;
+        //setTimeout(() => this._onSelect(pin), 10);
       }
     });
   }
 
   getSelected() {
     return this.selectedPin;
+  }
+
+  getValue() {
+    return this.pinsMap[this.selectedPin];
   }
 
   _onSelect(pin) {

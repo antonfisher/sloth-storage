@@ -27,10 +27,10 @@ class Switch extends EventEmitter {
     }
     rpio.open(this.pin, rpio.INPUT, rpio.PULL_DOWN);
     rpio.poll(this.pin, () => this._onSwitch(), rpio.POLL_BOTH);
-    //setTimeout(() => this._onSwitch(), 10);
+    this.isOn = rpio.read(this.pin);
   }
 
-  getState() {
+  getValue() {
     return this.isOn;
   }
 

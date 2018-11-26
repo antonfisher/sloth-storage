@@ -42,7 +42,7 @@ class Display extends PhatDisplayWrapper {
   _startUpdater() {
     this._stopUpdater();
     this._updaterInterval = setInterval(() => {
-      if (this.buffer[this.selected]) {
+      if (typeof this.buffer[this.selected] !== 'undefined') {
         this.writeString(this.buffer[this.selected]);
       } else {
         this.writeString(`?${this.selected}`);
@@ -91,6 +91,14 @@ class Display extends PhatDisplayWrapper {
   _stopClock() {
     clearInterval(this._clockInterval);
     this._clockInterval = null;
+  }
+
+  destroy() {
+    this._stopClock();
+    this._stopScrollIp();
+    this._stopUpdater();
+
+    super.destroy();
   }
 }
 

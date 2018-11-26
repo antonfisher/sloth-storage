@@ -48,9 +48,9 @@ class Hardware extends EventEmitter {
     });
 
     this.selectorReplications = new SelectorReplications();
-    this.selectorReplications.on('select', (operation) => {
-      this.display.writeString(`RS:${operation}`); // debug
-    });
+    // this.selectorReplications.on('select', (operation) => {
+    //   this.display.writeString(`RS:${operation}`); // debug
+    // });
 
     this.switchOnOff = new SwitchOnOff();
     this.switchOnOff.on('switch', (value) => {
