@@ -1,7 +1,7 @@
 const expect = require('expect.js');
-const {exec} = require('../utils');
+const {exec} = require('./utils');
 
-const parseCliArgs = require('../../src/application/parseCliArgs');
+const parseCliArgs = require('../src/parseCliArgs');
 
 const defaultNpmStartArgv = ['/usr/local/bin/node', '/home/af/js/sloth-storage/src/index.js'];
 
