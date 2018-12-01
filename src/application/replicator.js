@@ -7,6 +7,9 @@ const {CODES} = require('./errorHelpers');
 const utils = require('./utils');
 
 const DEFAULT_IDLE_TIMEOUT = 100;
+const IO_CONCURRENT_READ_OPERATION_COUNT = 3; //TODO TBD
+const IO_CONCURRENT_COPY_OPERATION_COUNT = 1; //TODO TBD
+const IO_CONCURRENT_REMOVE_OPERATION_COUNT = 1; //TODO TBD
 
 /**
  * @param {DeviceManager} devicesManager    DeviceManager instance
@@ -35,6 +38,8 @@ class Replicator extends EventEmitter {
 
     this._globalIsReady = false;
     this._replicateNextTimeout = null;
+    this._replicationInProgress = false;
+    this._setReplicationCountNextValue = null;
     this._startReplicateWorker();
   }
 
@@ -46,8 +51,20 @@ class Replicator extends EventEmitter {
   setReplicationCount(value) {
     if (value === this.replicationCount) {
       return;
+    } else if (value <= 0) {
+      this.emit(Replicator.EVENTS.WARN, `invalid replication count value: '${value}'`);
+      return;
     }
 
+    // save new value for later if another replication is in progress
+    if (this._replicationInProgress) {
+      this._setReplicationCountNextValue = value;
+      return;
+    } else {
+      this._setReplicationCountNextValue = null;
+    }
+
+    this._replicationInProgress = true;
     this._stopReplicateWorker();
 
     const oldValue = this.replicationCount;
@@ -56,55 +73,58 @@ class Replicator extends EventEmitter {
     const logMessage = `Change replication count from ${oldValue} to ${value}:`;
     this.emit(Replicator.EVENTS.REPLICATION_STARTED, `${logMessage} start process...`);
 
-    const fileMap = {
-      //"relativeFilePath": [..."devicePaths"]
-    };
-    const devices = this.devicesManager.getDevices();
-    let directoryList = devices.map((dev) => ({device: dev, path: ''}));
+    async.waterfall(
+      [
+        (done) => {
+          const filesMap = {
+            // {"relativeFilePath": [..."devicePaths"], ...}
+          };
+          const rootDirectories = this.devicesManager.getDevices().map((dev) => ({device: dev, path: ''}));
+          this._getFilesMap(rootDirectories, filesMap, (err) => done(err, filesMap));
+        },
+        (filesMap, done) => {
+          const fileList = Object.entries(filesMap);
+          this.emit(Replicator.EVENTS.INFO, `${logMessage} ${fileList.length} file(s) found`);
 
-    // find all files in all directories :0
-    while (directoryList.length > 0) {
-      const length = directoryList.length;
-      directoryList.forEach((dir) => this._traverseDirectory(dir, directoryList, fileMap, logMessage));
-      directoryList = directoryList.slice(length); // cut out traversed directories
-    }
-
-    const fileList = Object.entries(fileMap);
-    this.emit(Replicator.EVENTS.INFO, `${logMessage} ${fileList.length} file(s) found`);
-
-    fileList.forEach((file) => {
-      const [relativePath, devs] = file;
-      if (this.replicationCount > oldValue) {
-        // duplicate file for get required replication count
-        const devicesToUse = utils.shuffleArray(devices.filter((dev) => !devs.includes(dev)));
-        for (let i = 0; i < this.replicationCount - devs.length && i < devicesToUse.length; i++) {
-          const sourceFile = join(devs[utils.getRandomIntInclusive(0, devs.length - 1)], relativePath);
-          const destinationFile = join(devicesToUse[i], relativePath);
-          try {
-            this.fs.copyFileSync(sourceFile, destinationFile);
-          } catch (e) {
+          async.forEachLimit(
+            fileList,
+            IO_CONCURRENT_READ_OPERATION_COUNT,
+            (file, fileDone) => {
+              if (this._setReplicationCountNextValue !== null) {
+                return done(new Error(`replication count changed to ${this._setReplicationCountNextValue}`));
+              }
+              if (this.replicationCount > oldValue) {
+                this._copyFile(file, fileDone); // duplicate file for get required replication count
+              } else {
+                this._removeFile(file, fileDone); // remove redundant file's copies
+              }
+            },
+            (err) => done(err)
+          );
+        }
+      ],
+      (err) => {
+        if (err) {
+          if (this._setReplicationCountNextValue !== null) {
             this.emit(
-              Replicator.EVENTS.ERROR,
-              `${logMessage} failed to copy from "${sourceFile}" to "${destinationFile}": ${e}`
+              Replicator.EVENTS.WARN,
+              `${logMessage} warning, desired replication count changed to ${this._setReplicationCountNextValue} ` +
+                `during the replication (Error: ${err})`
             );
+          } else {
+            this.emit(Replicator.EVENTS.ERROR, `${logMessage} error: ${err}`);
           }
         }
-      } else {
-        // remove redundant file's copies
-        const devicesToUse = utils.shuffleArray([...devs]);
-        for (let i = 0; i < devs.length - this.replicationCount && i < devicesToUse.length; i++) {
-          const deleteFile = join(devs[i], relativePath);
-          try {
-            this.fs.unlinkSync(deleteFile);
-          } catch (e) {
-            this.emit(Replicator.EVENTS.ERROR, `${logMessage} failed to delete file from device "${deleteFile}: ${e}`);
-          }
+        this._replicationInProgress = false;
+        this._startReplicateWorker();
+        this.emit(Replicator.EVENTS.REPLICATION_FINISHED, `${logMessage} [DONE]`);
+        if (this._setReplicationCountNextValue !== null) {
+          const nextValue = this._setReplicationCountNextValue;
+          this._setReplicationCountNextValue = null;
+          setTimeout(() => this.setReplicationCount(nextValue), 10);
         }
       }
-    });
-
-    this._startReplicateWorker();
-    this.emit(Replicator.EVENTS.REPLICATION_FINISHED, `${logMessage} [DONE]`);
+    );
   }
 
   _startReplicateWorker() {
@@ -120,29 +140,117 @@ class Replicator extends EventEmitter {
     this.emit(Replicator.EVENTS.INFO, `replication worker stopped`);
   }
 
-  _traverseDirectory(dir, directoryList, filesMap, logMessage = '_traverseDirectory()') {
-    const fileDirFullPath = join(dir.device, dir.path);
-    try {
-      this.fs.readdirSync(fileDirFullPath).forEach((file) => {
-        const fileFullPath = join(fileDirFullPath, file);
-        try {
-          if (this.fs.statSync(fileFullPath).isDirectory()) {
-            directoryList.push({device: dir.device, path: join(dir.path, file)});
-          } else {
-            const relativeFilePath = join(dir.path, file);
-            if (typeof filesMap[relativeFilePath] === 'undefined') {
-              filesMap[relativeFilePath] = [dir.device];
-            } else {
-              filesMap[relativeFilePath].push(dir.device);
-            }
-          }
-        } catch (e) {
-          this.emit(Replicator.EVENTS.ERROR, `${logMessage} failed to get "${fileFullPath}" file stats: ${e}`);
+  /**
+   * Find all files in all directories :0
+   *
+   * @param {Array}   directoryList array of objects: [{device: '...', path: '...'}, ...]
+   * @param {Object}  filesMap      object of files: {"relativeFilePath": [..."devicePaths"], ...}
+   * @returns {Object} {"relativeFilePath": [..."devicePaths"], ...}
+   */
+  _getFilesMap(directoryList, filesMap, callback) {
+    async.concatLimit(
+      directoryList,
+      IO_CONCURRENT_READ_OPERATION_COUNT,
+      (dir, done) => this._traverseDirectory(dir, filesMap, done),
+      (err, childrenDirectoryList) => {
+        if (this._setReplicationCountNextValue !== null) {
+          return callback(`desired replication count changed to ${this._setReplicationCountNextValue}`);
         }
-      });
-    } catch (e) {
-      this.emit(Replicator.EVENTS.ERROR, `${logMessage} failed to read directory ${fileDirFullPath}: ${e}`);
-    }
+        if (childrenDirectoryList.length > 0) {
+          return this._getFilesMap(childrenDirectoryList, filesMap, callback);
+        }
+        return callback(err);
+      }
+    );
+  }
+
+  /**
+   * @param {String} dir
+   * @param {Object} filesMap - object to mutate
+   * @param {Function} callback(err, childrenDirectoryList)
+   */
+  _traverseDirectory(dir, filesMap, callback) {
+    const fileDirFullPath = join(dir.device, dir.path);
+    const childrenDirectoryList = [];
+
+    this.fs.readdir(fileDirFullPath, (err, files) => {
+      if (err) {
+        this.emit(Replicator.EVENTS.ERROR, `replication: failed to read directory ${fileDirFullPath}: ${err}`);
+        return callback(null, childrenDirectoryList);
+      }
+
+      async.forEachLimit(
+        files,
+        IO_CONCURRENT_READ_OPERATION_COUNT,
+        (file, done) => {
+          const fileFullPath = join(fileDirFullPath, file);
+          this.fs.stat(fileFullPath, (err, stat) => {
+            if (err) {
+              this.emit(Replicator.EVENTS.ERROR, `replication: failed to get "${fileFullPath}" file stats: ${err}`);
+            } else if (stat.isDirectory()) {
+              childrenDirectoryList.push({device: dir.device, path: join(dir.path, file)});
+            } else {
+              const relativeFilePath = join(dir.path, file);
+              if (typeof filesMap[relativeFilePath] === 'undefined') {
+                filesMap[relativeFilePath] = [dir.device];
+              } else {
+                filesMap[relativeFilePath].push(dir.device);
+              }
+            }
+            return done(null);
+          });
+        },
+        (err) => callback(err, childrenDirectoryList)
+      );
+    });
+  }
+
+  // duplicate file for get required replication count
+  _copyFile(file, done) {
+    const [relativePath, devsFileAlreadyExist] = file;
+    const devs = this.devicesManager.getDevices();
+    let devsToUse = utils.shuffleArray(devs.filter((dev) => !devsFileAlreadyExist.includes(dev)));
+    devsToUse = devsToUse.slice(0, this.replicationCount - devsFileAlreadyExist.length);
+    async.forEachLimit(
+      devsToUse,
+      IO_CONCURRENT_COPY_OPERATION_COUNT,
+      (dev, copyDone) => {
+        const randomFileToCopyFrom = utils.getRandomIntInclusive(0, devsFileAlreadyExist.length - 1);
+        const sourceFile = join(devsFileAlreadyExist[randomFileToCopyFrom], relativePath);
+        const destinationFile = join(dev, relativePath);
+        this.fs.copyFile(sourceFile, destinationFile, (err) => {
+          if (err) {
+            this.emit(
+              Replicator.EVENTS.ERROR,
+              `${logMessage} failed to copy from "${sourceFile}" to "${destinationFile}": ${e}`
+            );
+          }
+          return copyDone(null); // ignore copy errors
+        });
+      },
+      done
+    );
+  }
+
+  // remove redundant file's copies
+  _removeFile(file, done) {
+    const [relativePath, devsFileAlreadyExist] = file;
+    let devsToUse = utils.shuffleArray([...devsFileAlreadyExist]);
+    devsToUse = devsToUse.slice(0, devsFileAlreadyExist.length - this.replicationCount);
+    async.forEachLimit(
+      devsToUse,
+      IO_CONCURRENT_REMOVE_OPERATION_COUNT,
+      (dev, rmDone) => {
+        const deleteFile = join(dev, relativePath);
+        this.fs.unlink(deleteFile, (err) => {
+          if (err) {
+            this.emit(Replicator.EVENTS.ERROR, `${logMessage} failed to delete file from device "${deleteFile}: ${e}`);
+          }
+          return rmDone(null); // ignore remove error
+        });
+      },
+      done
+    );
   }
 
   _replicateNext() {
