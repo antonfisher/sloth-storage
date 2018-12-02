@@ -95,7 +95,7 @@ class DevicesManager extends EventEmitter {
 
     return {
       stats,
-      freeCapacity: (totalCapacity !== null && usedCapacity !== null ? totalCapacity - usedCapacity : null),
+      freeCapacity: totalCapacity !== null && usedCapacity !== null ? totalCapacity - usedCapacity : null,
       usedCapacity,
       totalCapacity,
       usedCapacityPercent

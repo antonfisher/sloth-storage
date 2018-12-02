@@ -294,11 +294,16 @@ class Replicator extends EventEmitter {
                   if (err && err.code !== CODES.EEXIST) {
                     return writeDone(err);
                   }
-                  try {
-                    this.fs.createReadStream(sourcePath).pipe(
+                  this.fs
+                    .createReadStream(sourcePath)
+                    .on('error', (err) => {
+                      this.emit(Replicator.EVENTS.VERBOSE, `${logMessage} [ERROR] ${err}`);
+                      writeDone(err);
+                    })
+                    .pipe(
                       this.fs
                         .createWriteStream(destinationPath)
-                        .on('error', () => {
+                        .on('error', (err) => {
                           this.emit(Replicator.EVENTS.VERBOSE, `${logMessage} [ERROR] ${err}`);
                           writeDone(err);
                         })
@@ -307,9 +312,6 @@ class Replicator extends EventEmitter {
                           writeDone(null);
                         })
                     );
-                  } catch (e) {
-                    this.emit(Replicator.EVENTS.VERBOSE, `${logMessage} [ERROR] ${err}`);
-                  }
                 });
               },
               (err) => done(err)
