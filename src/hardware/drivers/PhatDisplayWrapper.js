@@ -1,5 +1,6 @@
 const {resolve} = require('path');
 const {spawn} = require('child_process');
+const EventEmitter = require('events');
 
 const pythonDriverPath = resolve(__dirname, 'PhatDisplayDriver.py');
 
@@ -7,8 +8,10 @@ function jsonToStdoutString(json) {
   return `${JSON.stringify(json)}\n`;
 }
 
-class PhatDisplayWrapper {
+class PhatDisplayWrapper extends EventEmitter {
   constructor() {
+    super();
+
     this._pythonDriverProcess = spawn('python', [pythonDriverPath]);
     this._pythonDriverProcess.on('error', (err) => {
       throw `[PhatDisplayWrapper] python child process error: ${err}`;
@@ -30,7 +33,7 @@ class PhatDisplayWrapper {
     this._pythonDriverProcess.stdin.write(
       jsonToStdoutString({
         cmd: 'write_string',
-        arg1: str
+        arg1: String(str)
       })
     );
   }

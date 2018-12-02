@@ -50,8 +50,8 @@ class Application extends EventEmitter {
       .on(DevicesManager.EVENTS.WARN, (message) => this.logger.warn(`[DevicesManager] ${message}`))
       .on(DevicesManager.EVENTS.INFO, (message) => this.logger.info(`[DevicesManager] ${message}`))
       .on(DevicesManager.EVENTS.VERBOSE, (message) => this.logger.verbose(`[DevicesManager] ${message}`))
-      .on(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, (percent) =>
-        this.logger.info(`[DevicesManager] Storage utilization changed: ${(percent * 100).toFixed(1)}%`)
+      .on(DevicesManager.EVENTS.UTILIZATION_CHANGED, ({usedPercent}) =>
+        this.logger.info(`[DevicesManager] Storage utilization changed: ${(usedPercent * 100).toFixed(1)}%`)
       );
 
     this.mergedFs = new MergedFs({

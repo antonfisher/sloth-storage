@@ -44,12 +44,14 @@ The idea is to build drive distributed storage device with FTP interface on Node
 
 ## Hardware
 
-### Install deps:
+### Installation:
 
 ```bash
+# install deps
+sudo apt-get install -y gcc g++ make git vim htop;
+
 # install nodejs
 sudo curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
-sudo apt-get install -y gcc g++ make git;
 sudo apt-get install -y nodejs
 
 # install application
@@ -85,6 +87,20 @@ npm start -- --help
 
 # run on RPI
 npm start -- --rpi
+```
+
+## Debug
+
+```bash
+# USB devices list
+blkid | grep "/dev/s"
+
+# find unmounted USB devices
+cd ./scripts
+./find-unmounted-devices.js
+
+# mount USB devices
+./find-unmounted-devices.js --mount
 ```
 
 ## Current stage

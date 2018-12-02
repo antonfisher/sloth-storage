@@ -310,7 +310,7 @@ describe('devicesManager', () => {
     });
 
     describe('#_parseDfOutput()', () => {
-      it('should return device stats, totalCapacity and usedCapacityPercent', () => {
+      it('should return device stats and *Capacity fields', () => {
         const dev1 = `${devicesManager.getDevicesPath()}/dev1`;
         const dev1Key = `${dev1}/${storageDirName}`;
         const dev2 = `${devicesManager.getDevicesPath()}/dev2`;
@@ -326,7 +326,7 @@ describe('devicesManager', () => {
           ].join('\n')
         );
         expect(df).to.be.an('object');
-        expect(df).to.only.have.keys('stats', 'totalCapacity', 'usedCapacityPercent');
+        expect(df).to.only.have.keys('stats', 'totalCapacity', 'usedCapacity', 'freeCapacity', 'usedCapacityPercent');
         expect(df.stats).to.be.an('object');
         expect(df.stats).to.only.have.keys(dev1Key, dev2Key);
         expect(df.stats[dev1Key]).to.be.an('object');
@@ -338,17 +338,21 @@ describe('devicesManager', () => {
         expect(df.stats[dev2Key].usedPercent).to.be(0.5);
         expect(df.stats[dev2Key].size).to.be(200 * 1024);
         expect(df.totalCapacity).to.be(300 * 1024);
+        expect(df.usedCapacity).to.be(150 * 1024);
+        expect(df.freeCapacity).to.be(150 * 1024);
         expect(df.usedCapacityPercent).to.be(0.5);
       });
 
-      it('should return device stats, totalCapacity and usedCapacityPercent as null if no devices found', () => {
+      it('should return device stats and *Capacity fields as null if no devices found', () => {
         const df = devicesManager._parseDfOutput('');
         expect(df).to.be.an('object');
-        expect(df).to.only.have.keys('stats', 'totalCapacity', 'usedCapacityPercent');
+        expect(df).to.only.have.keys('stats', 'totalCapacity', 'usedCapacity', 'freeCapacity', 'usedCapacityPercent');
         expect(df.stats).to.be.an('object');
         expect(df.stats).to.be.empty();
         expect(df.totalCapacity).to.be(null);
         expect(df.usedCapacityPercent).to.be(null);
+        expect(df.freeCapacity).to.be(null);
+        expect(df.usedCapacity).to.be(null);
       });
     });
 
@@ -444,9 +448,9 @@ describe('devicesManager', () => {
           childProcess: {exec: execMock}
         });
 
-        localDevicesManager.on(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, (value) => {
+        localDevicesManager.on(DevicesManager.EVENTS.UTILIZATION_CHANGED, ({usedPercent}) => {
           localDevicesManager.destroy();
-          expect(value).to.be(0.25);
+          expect(usedPercent).to.be(0.25);
           done();
         });
       });

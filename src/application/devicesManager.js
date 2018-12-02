@@ -95,6 +95,8 @@ class DevicesManager extends EventEmitter {
 
     return {
       stats,
+      freeCapacity: (totalCapacity !== null && usedCapacity !== null ? totalCapacity - usedCapacity : null),
+      usedCapacity,
       totalCapacity,
       usedCapacityPercent
     };
@@ -114,14 +116,19 @@ class DevicesManager extends EventEmitter {
         return;
       }
 
-      const {stats, totalCapacity, usedCapacityPercent} = this._parseDfOutput(res);
+      const {stats, usedCapacity, freeCapacity, totalCapacity, usedCapacityPercent} = this._parseDfOutput(res);
 
       this._capacityStats = stats;
-      this._totalCapacity = totalCapacity;
 
-      if (usedCapacityPercent !== this._usedCapacityPercent) {
+      if (usedCapacityPercent !== this._usedCapacityPercent || totalCapacity !== this._totalCapacity) {
+        this._totalCapacity = totalCapacity;
         this._usedCapacityPercent = usedCapacityPercent;
-        this.emit(DevicesManager.EVENTS.USED_CAPACITY_PERCENT_CHANGED, this._usedCapacityPercent);
+        this.emit(DevicesManager.EVENTS.UTILIZATION_CHANGED, {
+          used: usedCapacity,
+          free: freeCapacity,
+          total: totalCapacity,
+          usedPercent: usedCapacityPercent
+        });
       }
     });
   }
@@ -313,7 +320,7 @@ DevicesManager.EVENTS = {
   READY: 'READY',
   DEVICE_ADDED: 'DEVICE_ADDED',
   DEVICE_REMOVED: 'DEVICE_REMOVED',
-  USED_CAPACITY_PERCENT_CHANGED: 'USED_CAPACITY_PERCENT_CHANGED'
+  UTILIZATION_CHANGED: 'UTILIZATION_CHANGED'
 };
 
 module.exports = DevicesManager;

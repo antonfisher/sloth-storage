@@ -18,7 +18,7 @@ class Display extends PhatDisplayWrapper {
       [SelectorDisplay.OPTIONS.CAPACITY_USED]: 'used',
       [SelectorDisplay.OPTIONS.TIME]: 'time',
       [SelectorDisplay.OPTIONS.ERROR]: 'error',
-      [SelectorDisplay.OPTIONS.SYNC_STATUS]: 'sync',
+      [SelectorDisplay.OPTIONS.SYNC_STATUS]: 'Q:0',
       [SelectorDisplay.OPTIONS.DRIVES]: 'drives',
       [SelectorDisplay.OPTIONS.IP]: 'ip'
     };
@@ -36,6 +36,14 @@ class Display extends PhatDisplayWrapper {
       this._startClock();
     } else if (operation === SelectorDisplay.OPTIONS.IP) {
       this._startScrollIp();
+    }
+  }
+
+  setBufferValue(id, value) {
+    if (typeof this.buffer[id] !== 'undefined') {
+      this.buffer[id] = value || '';
+    } else {
+      this.emit(Display.EVENTS.WARN, `Display: buffer '${id}' doesn't exist`); //TODO print in the upper layer
     }
   }
 
@@ -101,5 +109,9 @@ class Display extends PhatDisplayWrapper {
     super.destroy();
   }
 }
+
+Display.EVENTS = {
+  WARN: 'WARN'
+};
 
 module.exports = Display;

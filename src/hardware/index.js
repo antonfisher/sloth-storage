@@ -35,9 +35,9 @@ class Hardware extends EventEmitter {
     this.analogGaugeUtilization = new AnalogGaugeUtilization();
 
     //debug -----
-    setInterval(() => {
-      this.analogGaugeUtilization.setValue(new Date().getSeconds() / 59);
-    }, 1000);
+    // setInterval(() => {
+    //   this.analogGaugeUtilization.setValue(new Date().getSeconds() / 59);
+    // }, 1000);
     //-----------
 
     this.selectorDisplay = new SelectorDisplay();
@@ -53,9 +53,9 @@ class Hardware extends EventEmitter {
     // });
 
     this.switchOnOff = new SwitchOnOff();
-    this.switchOnOff.on('switch', (value) => {
-      console.log('## switch', value);
-    });
+    // this.switchOnOff.on('switch', (value) => {
+    //   console.log('## switch', value);
+    // });
   }
 
   destroy() {

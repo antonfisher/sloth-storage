@@ -1,6 +1,6 @@
 const rpio = require('rpio');
 
-const BLINK_DURATION = 500;
+const BLINK_DURATION = 333;
 const BLINK_ONCE_DURATION = 333;
 
 class Led {
@@ -34,16 +34,18 @@ class Led {
     rpio.write(this.pin, Boolean(value) ? rpio.HIGH : rpio.LOW);
   }
 
-  setBlink(value) {
+  setBlink(value, duration = BLINK_DURATION) {
     this._clearTimeouts();
+    const blink = () => {
+      rpio.write(this.pin, rpio.HIGH);
+      clearTimeout(this._blinkTimeout);
+      this._blinkTimeout = setTimeout(() => {
+        rpio.write(this.pin, rpio.LOW);
+      }, duration);
+    };
     if (value) {
-      this._blinkInterval = setInterval(() => {
-        rpio.write(this.pin, rpio.HIGH);
-        clearTimeout(this._blinkTimeout);
-        this._blinkTimeout = setTimeout(() => {
-          rpio.write(this.pin, rpio.LOW);
-        }, BLINK_DURATION);
-      }, BLINK_DURATION * 2);
+      this._blinkInterval = setInterval(blink, duration * 2);
+      blink();
     } else {
       rpio.write(this.pin, rpio.LOW);
     }

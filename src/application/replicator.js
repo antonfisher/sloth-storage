@@ -222,7 +222,7 @@ class Replicator extends EventEmitter {
           if (err) {
             this.emit(
               Replicator.EVENTS.ERROR,
-              `${logMessage} failed to copy from "${sourceFile}" to "${destinationFile}": ${e}`
+              `replication: failed to copy from "${sourceFile}" to "${destinationFile}": ${e}`
             );
           }
           return copyDone(null); // ignore copy errors
@@ -244,7 +244,7 @@ class Replicator extends EventEmitter {
         const deleteFile = join(dev, relativePath);
         this.fs.unlink(deleteFile, (err) => {
           if (err) {
-            this.emit(Replicator.EVENTS.ERROR, `${logMessage} failed to delete file from device "${deleteFile}: ${e}`);
+            this.emit(Replicator.EVENTS.ERROR, `replication: failed to delete file from device "${deleteFile}: ${e}`);
           }
           return rmDone(null); // ignore remove error
         });
@@ -294,18 +294,22 @@ class Replicator extends EventEmitter {
                   if (err && err.code !== CODES.EEXIST) {
                     return writeDone(err);
                   }
-                  this.fs.createReadStream(sourcePath).pipe(
-                    this.fs
-                      .createWriteStream(destinationPath)
-                      .on('error', () => {
-                        this.emit(Replicator.EVENTS.VERBOSE, `${logMessage} [ERROR] ${err}`);
-                        writeDone(err);
-                      })
-                      .on('finish', () => {
-                        this.emit(Replicator.EVENTS.VERBOSE, `${logMessage} [DONE]`);
-                        writeDone(null);
-                      })
-                  );
+                  try {
+                    this.fs.createReadStream(sourcePath).pipe(
+                      this.fs
+                        .createWriteStream(destinationPath)
+                        .on('error', () => {
+                          this.emit(Replicator.EVENTS.VERBOSE, `${logMessage} [ERROR] ${err}`);
+                          writeDone(err);
+                        })
+                        .on('finish', () => {
+                          this.emit(Replicator.EVENTS.VERBOSE, `${logMessage} [DONE]`);
+                          writeDone(null);
+                        })
+                    );
+                  } catch (e) {
+                    this.emit(Replicator.EVENTS.VERBOSE, `${logMessage} [ERROR] ${err}`);
+                  }
                 });
               },
               (err) => done(err)
@@ -317,7 +321,7 @@ class Replicator extends EventEmitter {
             this.emit(Replicator.EVENTS.ERROR, `Cannot replicate file ${sourcePath}: ${err}`);
             this._addToQueue(device, relativePath); // try to replicate this file later?
           } else {
-            this.emit(Replicator.EVENTS.INFO, `${sourcePath} replications is completed`);
+            this.emit(Replicator.EVENTS.INFO, `${sourcePath} replication is completed`);
           }
           this._replicateNextTimeout = setTimeout(() => this._replicateNext(), this.idleTimeout);
         }

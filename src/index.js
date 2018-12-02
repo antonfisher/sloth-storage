@@ -2,10 +2,17 @@ const {join} = require('path');
 
 const {version, description, homepage} = require('../package.json');
 const logger = require('./logger');
+const parseCliArgs = require('./parseCliArgs');
 const Hardware = require('./hardware');
 const Application = require('./application');
+const {formatBytes} = require('./application/utils');
+
+// software
 const Replicator = require('./application/replicator');
-const parseCliArgs = require('./parseCliArgs');
+const DevicesManager = require('./application/devicesManager');
+
+// hardware
+const SelectorDisplay = require('./hardware/SelectorDisplay');
 
 let hardware;
 let application;
@@ -103,6 +110,13 @@ parseCliArgs(
     });
 
     if (rpi) {
+      application.devicesManager.on(DevicesManager.EVENTS.READY, () =>
+        hardware.display.setBufferValue(
+          SelectorDisplay.OPTIONS.DRIVES,
+          application.devicesManager.getDevices(false).length
+        )
+      );
+
       // on/off switch
       hardware.switchOnOff.on('switch', (value) => {
         logger.info(`on/off switch triggered: ${value}`);
@@ -119,8 +133,33 @@ parseCliArgs(
       });
 
       application.replicator
+        .on(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, (l) => {
+          if (l === 0) {
+            hardware.ledIO.setBlink(false);
+          } else {
+            hardware.ledIO.setBlink(true, 30 + 300 / l);
+          }
+          hardware.display.setBufferValue(SelectorDisplay.OPTIONS.SYNC_STATUS, `Q:${l}`);
+        })
         .on(Replicator.EVENTS.REPLICATION_STARTED, () => hardware.ledIO.setBlink(true))
-        .on(Replicator.EVENTS.REPLICATION_STARTED, () => hardware.ledIO.setBlink(false));
+        .on(Replicator.EVENTS.REPLICATION_FINISHED, () => hardware.ledIO.setBlink(false));
+
+      application.devicesManager.on(DevicesManager.EVENTS.UTILIZATION_CHANGED, ({total, used, free, usedPercent}) => {
+        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_TOTAL, formatBytes(total));
+        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_USED, formatBytes(used));
+        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_FREE, formatBytes(free));
+        hardware.analogGaugeUtilization.setValue(usedPercent);
+      });
+
+      const updateDevicesCount = () => {
+        hardware.display.setBufferValue(
+          SelectorDisplay.OPTIONS.DRIVES,
+          application.devicesManager.getDevices(false).length
+        );
+      };
+      application.devicesManager
+        .on(DevicesManager.EVENTS.DEVICE_ADDED, updateDevicesCount)
+        .on(DevicesManager.EVENTS.DEVICE_REMOVED, updateDevicesCount);
 
       hardware.selectorReplications.on('select', (value) => {
         logger.info(`[USER] changed replication count: ${value}`);
