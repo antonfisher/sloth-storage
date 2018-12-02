@@ -200,6 +200,16 @@ describe('replicator', () => {
       setTimeout(() => done(), 10);
     });
 
+    it('should emit a warning if value is 0', (done) => {
+      const failTimeout = setTimeout(() => done('not warning emitted'), 10);
+      replicator.on(Replicator.EVENTS.WARN, () => {
+        clearTimeout(failTimeout);
+        done();
+      });
+      replicator.on(Replicator.EVENTS.REPLICATION_STARTED, () => done('REPLICATION_STARTED event was fired'));
+      replicator.setReplicationCount(0);
+    });
+
     it('Replicator.isReady() should be false during replication process', (done) => {
       const testFileName = 'test.txt';
       const devices = devicesManager.getDevices(false);
