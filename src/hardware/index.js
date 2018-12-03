@@ -34,28 +34,15 @@ class Hardware extends EventEmitter {
     this.analogGaugeCpu = new AnalogGaugeCpu();
     this.analogGaugeUtilization = new AnalogGaugeUtilization();
 
-    //debug -----
-    // setInterval(() => {
-    //   this.analogGaugeUtilization.setValue(new Date().getSeconds() / 59);
-    // }, 1000);
-    //-----------
-
     this.selectorDisplay = new SelectorDisplay();
     this.selectorDisplay.on('select', (operation) => {
       this.display.setMode(operation);
       this.ledError.setValue(operation === SelectorDisplay.OPTIONS.ERROR);
-      this.ledIO.setValue(operation === SelectorDisplay.OPTIONS.SYNC_STATUS);
     });
 
     this.selectorReplications = new SelectorReplications();
-    // this.selectorReplications.on('select', (operation) => {
-    //   this.display.writeString(`RS:${operation}`); // debug
-    // });
 
     this.switchOnOff = new SwitchOnOff();
-    // this.switchOnOff.on('switch', (value) => {
-    //   console.log('## switch', value);
-    // });
   }
 
   destroy() {

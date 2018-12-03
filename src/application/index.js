@@ -5,6 +5,7 @@ const {FtpServer} = require('ftpd');
 const DevicesManager = require('./devicesManager');
 const MergedFs = require('./mergedFs');
 const Replicator = require('./replicator');
+const CODES = require('../codes');
 
 const DEFAULT_REPLICATION_COUNT = 2;
 
@@ -46,7 +47,7 @@ class Application extends EventEmitter {
 
   run() {
     this.devicesManager = new DevicesManager({devicesPath: this.devicesPath})
-      .on(DevicesManager.EVENTS.ERROR, (message) => this.logger.error(`[DevicesManager] ${message}`))
+      .on(DevicesManager.EVENTS.ERROR, (message) => this.emit(CODES.ERROR, `[DevicesManager] ${message}`))
       .on(DevicesManager.EVENTS.WARN, (message) => this.logger.warn(`[DevicesManager] ${message}`))
       .on(DevicesManager.EVENTS.INFO, (message) => this.logger.info(`[DevicesManager] ${message}`))
       .on(DevicesManager.EVENTS.VERBOSE, (message) => this.logger.verbose(`[DevicesManager] ${message}`))

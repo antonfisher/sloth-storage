@@ -12,12 +12,14 @@ class Display extends PhatDisplayWrapper {
   constructor() {
     super();
 
+    this._needToClearError = false;
+
     this.buffer = {
       [SelectorDisplay.OPTIONS.CAPACITY_FREE]: 'free',
       [SelectorDisplay.OPTIONS.CAPACITY_TOTAL]: 'total',
       [SelectorDisplay.OPTIONS.CAPACITY_USED]: 'used',
       [SelectorDisplay.OPTIONS.TIME]: 'time',
-      [SelectorDisplay.OPTIONS.ERROR]: 'error',
+      [SelectorDisplay.OPTIONS.ERROR]: 'no',
       [SelectorDisplay.OPTIONS.SYNC_STATUS]: 'Q:0',
       [SelectorDisplay.OPTIONS.DRIVES]: 'drives',
       [SelectorDisplay.OPTIONS.IP]: 'ip'
@@ -32,10 +34,18 @@ class Display extends PhatDisplayWrapper {
     this.clear();
 
     this.selected = operation;
+    this._needToClearError = false;
     if (operation === SelectorDisplay.OPTIONS.TIME) {
       this._startClock();
     } else if (operation === SelectorDisplay.OPTIONS.IP) {
       this._startScrollIp();
+    }
+
+    if (operation === SelectorDisplay.OPTIONS.ERROR) {
+      this._needToClearError = true;
+    } else if (this._needToClearError) {
+      this._needToClearError = false;
+      this.setBufferValue(SelectorDisplay.OPTIONS.ERROR, '');
     }
   }
 

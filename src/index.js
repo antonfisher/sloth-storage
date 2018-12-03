@@ -6,6 +6,7 @@ const parseCliArgs = require('./parseCliArgs');
 const Hardware = require('./hardware');
 const Application = require('./application');
 const {formatBytes} = require('./application/utils');
+const CODES = require('./codes');
 
 // software
 const Replicator = require('./application/replicator');
@@ -98,16 +99,23 @@ parseCliArgs(
       replicationCount,
       devicesPath
     });
-    application.on(Application.EVENTS.READY, () => {
-      if (rpi) {
-        if (hardware.switchOnOff.getValue()) {
+
+    application
+      .on(Application.EVENTS.READY, () => {
+        if (rpi) {
+          if (hardware.switchOnOff.getValue()) {
+            application.startFtpServer();
+          }
+          hardware.ledIO.setBlink(false);
+        } else {
           application.startFtpServer();
         }
-        hardware.ledIO.setBlink(false);
-      } else {
-        application.startFtpServer();
-      }
-    });
+      })
+      .on(CODES.ERROR, (err) => {
+        if (rpi) {
+          hardware.display.setBufferValue(SelectorDisplay.OPTIONS.ERROR, err);
+        }
+      });
 
     if (rpi) {
       application.devicesManager.on(DevicesManager.EVENTS.READY, () =>

@@ -39,6 +39,7 @@ class Replicator extends EventEmitter {
     this._globalIsReady = false;
     this._replicateNextTimeout = null;
     this._replicationInProgress = false;
+    this._replicationQueueLength = 0;
     this._setReplicationCountNextValue = null;
     this._startReplicateWorker();
   }
@@ -85,13 +86,17 @@ class Replicator extends EventEmitter {
         (filesMap, done) => {
           const fileList = Object.entries(filesMap);
           this.emit(Replicator.EVENTS.INFO, `${logMessage} ${fileList.length} file(s) found`);
+          this._replicationQueueLength = fileList.length;
+          this.emit(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, this._queue.length + this._replicationQueueLength);
 
           async.forEachLimit(
             fileList,
             IO_CONCURRENT_READ_OPERATION_COUNT,
             (file, fileDone) => {
               if (this._setReplicationCountNextValue !== null) {
-                return done(new Error(`replication count changed to ${this._setReplicationCountNextValue}`));
+                this._replicationQueueLength--;
+                this.emit(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, this._queue.length + this._replicationQueueLength);
+                return fileDone(new Error(`replication count changed to ${this._setReplicationCountNextValue}`));
               }
               if (this.replicationCount > oldValue) {
                 this._copyFile(file, fileDone); // duplicate file for get required replication count
@@ -116,6 +121,7 @@ class Replicator extends EventEmitter {
           }
         }
         this._replicationInProgress = false;
+        this.emit(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, this._queue.length);
         this._startReplicateWorker();
         this.emit(Replicator.EVENTS.REPLICATION_FINISHED, `${logMessage} [DONE]`);
         if (this._setReplicationCountNextValue !== null) {
@@ -211,6 +217,7 @@ class Replicator extends EventEmitter {
     const devs = this.devicesManager.getDevices();
     let devsToUse = utils.shuffleArray(devs.filter((dev) => !devsFileAlreadyExist.includes(dev)));
     devsToUse = devsToUse.slice(0, this.replicationCount - devsFileAlreadyExist.length);
+
     async.forEachLimit(
       devsToUse,
       IO_CONCURRENT_COPY_OPERATION_COUNT,
@@ -218,17 +225,33 @@ class Replicator extends EventEmitter {
         const randomFileToCopyFrom = utils.getRandomIntInclusive(0, devsFileAlreadyExist.length - 1);
         const sourceFile = join(devsFileAlreadyExist[randomFileToCopyFrom], relativePath);
         const destinationFile = join(dev, relativePath);
-        this.fs.copyFile(sourceFile, destinationFile, (err) => {
-          if (err) {
-            this.emit(
-              Replicator.EVENTS.ERROR,
-              `replication: failed to copy from "${sourceFile}" to "${destinationFile}": ${e}`
-            );
+
+        const emitError = (err) =>
+          this.emit(
+            Replicator.EVENTS.ERROR,
+            `replication: failed to copy from "${sourceFile}" to "${destinationFile}": ${err}`
+          );
+
+        // create dir if not exists
+        this.mergedFs._mkdirRecursive(dirname(destinationFile), (err) => {
+          // device may already has this directory created
+          if (err && err.code !== CODES.EEXIST) {
+            emitError(err);
+            return copyDone(null); // ignore copy errors
           }
-          return copyDone(null); // ignore copy errors
+          this.fs.copyFile(sourceFile, destinationFile, (err) => {
+            if (err) {
+              emitError(err);
+            }
+            return copyDone(null); // ignore copy errors
+          });
         });
       },
-      done
+      () => {
+        this._replicationQueueLength--;
+        this.emit(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, this._queue.length + this._replicationQueueLength);
+        done();
+      }
     );
   }
 
@@ -249,7 +272,11 @@ class Replicator extends EventEmitter {
           return rmDone(null); // ignore remove error
         });
       },
-      done
+      () => {
+        this._replicationQueueLength--;
+        this.emit(Replicator.EVENTS.QUEUE_LENGTH_CHANGED, this._queue.length + this._replicationQueueLength);
+        done();
+      }
     );
   }
 

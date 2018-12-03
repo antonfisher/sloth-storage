@@ -402,6 +402,9 @@ class MergedFs extends EventEmitter {
 
     return resolvedFileWriteStream;
   }
+
+  //TODO
+  //open()
 }
 
 MergedFs.EVENTS = {
