@@ -34,19 +34,34 @@ try {
   const notMountedDevices = blockDevices.filter(({dev}) => mountedDevices.indexOf(dev) === -1);
   console.log(`Not mounted devices:\n${stringify(notMountedDevices)}\n`);
 
+  const devicesToUnmount = mountedDevices.filter((d) => d.startsWith('/dev/s'));
+
   const flagMount = process.argv.indexOf('--mount') !== -1;
   const flagUmount = process.argv.indexOf('--umount') !== -1;
 
-  if (notMountedDevices.length === 0) {
-    console.log('Nothing to do here.');
-    process.exit();
-  } else if (!flagMount && flagUmount) {
-    console.log(`${notMountedDevices.length} devices found, add --mount flag to mount these devices to /mnt`);
-    console.log(`Or add --umount flag to umount ALL devices from /mnt`);
+  if (!flagMount && !flagUmount) {
+    if (notMountedDevices.length === 0) {
+      console.log(`No unmounted USB devices found.`);
+    } else {
+      console.log(
+        `${notMountedDevices.length} unmounted USB devices found, add --mount flag to mount these devices to /mnt`
+      );
+    }
+    if (devicesToUnmount.length > 0) {
+      console.log(
+        `${devicesToUnmount.length} mounted USB devices found, add --umount flag to unmount these device and delete ` +
+          `mount point from /mnt`
+      );
+    }
     process.exit();
   }
 
   if (flagMount) {
+    if (notMountedDevices.length === 0) {
+      console.log('Nothing to do there.');
+      process.exit();
+    }
+
     console.log('Do mount:');
     let count = 0;
     notMountedDevices.forEach(({dev, label}) => {
@@ -58,12 +73,26 @@ try {
         console.log(`${message} mount:`, execSync(`mount -o sync ${dev} ${mountDir}`).toString());
         console.log(`${message} OK\n--- ${count} of ${notMountedDevices.length} ---`);
       } catch (e) {
-        console.log(`ERROR: cannot mount '${dev}' to '${mountDir}':${e}`);
+        console.log(`ERROR: cannot mount '${dev}' to '${mountDir}': ${e}`);
       }
     });
   } else if (flagUmount) {
-    //TODO
-    console.log('## NOT IMPLEMENTED');
+    if (devicesToUnmount.length === 0) {
+      console.log('No USB devices found to unmount');
+      process.exit();
+    }
+    let count = 0;
+    devicesToUnmount.forEach((dev) => {
+      count++;
+      const message = `umount ${dev}:`;
+      try {
+        console.log(`${message} umount:`, execSync(`umount ${dev}`).toString());
+        console.log(`${message} rm dir:`, execSync(`rm -r ${dev}`).toString());
+        console.log(`${message} OK\n--- ${count} of ${devicesToUnmount.length} ---`);
+      } catch (e) {
+        console.log(`ERROR: cannot umount '${dev}': ${e}`);
+      }
+    });
   }
   console.log('Done.');
 } catch (e) {

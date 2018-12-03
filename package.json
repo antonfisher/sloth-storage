@@ -25,7 +25,11 @@
     "url": "https://github.com/antonfisher/sloth-storage/issues"
   },
   "scripts": {
+    "rpi": "npm start -- --devices-path /mnt --rpi",
     "start": "node ./src/index.js",
+    "mount": "node ./scripts/find-unmounted-devices.js",
+    "mount:do": "node ./scripts/find-unmounted-devices.js --mount",
+    "umount:do": "node ./scripts/find-unmounted-devices.js",
     "debug": "node --inspect ./src/index.js",
     "test": "mocha tests/**",
     "test:watch": "mocha --inspect --watch tests/**",
