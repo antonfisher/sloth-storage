@@ -7,7 +7,9 @@
 More photos and article about this project are
 [here](https://antonfisher.com/posts/2018/12/14/drive-distributed-storage-on-raspberry-pi/).
 <center>
+
 [![sloth-storage result](https://raw.githubusercontent.com/antonfisher/antonfisher.github.io/master/images/posts/10-raspberry-pi-storage/sloth-storage-result.jpg)](https://antonfisher.com/posts/2018/12/14/drive-distributed-storage-on-raspberry-pi/)
+
 </center>
 
 ## Idea
@@ -15,7 +17,9 @@ More photos and article about this project are
 The idea is to build drive distributed storage device with FTP interface on Node.js.
 
 <center>
+
 ![sloth-storage idea](https://raw.githubusercontent.com/antonfisher/antonfisher.github.io/master/images/posts/10-raspberry-pi-storage/sloth-storage-logo.png)
+
 </center>
 
 ## Features
@@ -39,18 +43,17 @@ The idea is to build drive distributed storage device with FTP interface on Node
 
 Tested with Raspberry Pi 3.
 
-Components:
-- 1 x RPi 3
-- 1 x Pimoroni Micro Dot pHAT with Included LED Modules - Red[ID:3248] = $29.95
-- 4 x USB 3.0 4-Port USB Hub Splitter Adapter Ultra Slim [ebay] = $16.40
-- 2 x DC 0-3V Analog Voltmeter Analogue Voltage panel = $8.56
-- 1 x 8GB Class 10 SD/MicroSD Memory Card - SD Adapter Included[ID:2692] = $9.95
-- 1 x USB OTG Host Cable - MicroB OTG male to A female[ID:1099] = $2.50
-- 1 x Mini Panel Mount SPDT Toggle Switch[ID:3221] = $0.95
-- 1 x Slim Metal Potentiometer Knob - 10mm Diameter x 10mm - T18[ID:2058] = $1.90
-- 1 x Solid Machined Metal Knob - 1" Diameter[ID:2056] = $3.95
-- 2 x Mini 8-Way Rotary Selector Switch - SP8T[ID:2925] = $3.90
-- 2 x led diode - red and yellow
+Almost complete list of used components:
+- 1 x RPi 3 ([ID:3055](https://www.adafruit.com/product/3055)) = $35.00
+- 1 x Pimoroni Micro Dot pHAT with Included LED Modules - Red ([ID:3248](https://www.adafruit.com/product/3248)) = $29.95
+- 4 x USB 3.0 4-Port USB Hub (eBay) = $16.40
+- 1 x 8GB Class 10 MicroSD Memory Card ([ID:2692](https://www.adafruit.com/product/2692)) = $9.95
+- 2 x DC 0-3V Analog Voltmeter (eBay) = $8.56
+- 1 x Mini Panel Mount SPDT Toggle Switch ([ID:3221](https://www.adafruit.com/product/3221)) = $0.95
+- 1 x Slim Metal Potentiometer Knob - 10mm Diameter x 10mm - T18 ([ID:2058](https://www.adafruit.com/product/2058)) = $1.90
+- 1 x Solid Machined Metal Knob - 1" Diameter ([ID:2056](https://www.adafruit.com/product/2056)) = $3.95
+- 2 x Mini 8-Way Rotary Selector Switch - SP8T ([ID:2925](https://www.adafruit.com/product/2925)) = $3.90
+- 2 x LED diode - red and yellow
 
 Box and indicators [blueprints](./blueprints).
 
