@@ -3,10 +3,11 @@
 [![Build Status](https://travis-ci.org/antonfisher/sloth-storage.svg?branch=master)](https://travis-ci.org/antonfisher/sloth-storage)
 [![Coverage Status](https://coveralls.io/repos/github/antonfisher/sloth-storage/badge.svg?branch=master)](https://coveralls.io/github/antonfisher/sloth-storage?branch=master)
 [![GitHub license](https://img.shields.io/github/license/antonfisher/sloth-storage.svg)](https://github.com/antonfisher/sloth-storage/blob/master/LICENSE)
+![status](https://img.shields.io/badge/status-beta-lightgray.svg)
 
 [![sloth-storage result](https://raw.githubusercontent.com/antonfisher/antonfisher.github.io/master/images/posts/10-raspberry-pi-storage/sloth-storage-result.jpg)](https://antonfisher.com/posts/2018/12/14/drive-distributed-storage-on-raspberry-pi/)
 
-More photos and article about this project are
+More photos and the article about this project are
 [here](https://antonfisher.com/posts/2018/12/14/drive-distributed-storage-on-raspberry-pi/).
 
 ## Idea
