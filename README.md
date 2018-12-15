@@ -4,15 +4,28 @@
 [![Coverage Status](https://coveralls.io/repos/github/antonfisher/sloth-storage/badge.svg?branch=master)](https://coveralls.io/github/antonfisher/sloth-storage?branch=master)
 [![GitHub license](https://img.shields.io/github/license/antonfisher/sloth-storage.svg)](https://github.com/antonfisher/sloth-storage/blob/master/LICENSE)
 
+More photos and article about this project are
+[here](https://antonfisher.com/posts/2018/12/14/drive-distributed-storage-on-raspberry-pi/).
+<center>
+[![sloth-storage result](https://raw.githubusercontent.com/antonfisher/antonfisher.github.io/master/images/posts/10-raspberry-pi-storage/sloth-storage-result.jpg)](https://antonfisher.com/posts/2018/12/14/drive-distributed-storage-on-raspberry-pi/)
+</center>
+
 ## Idea
+
 The idea is to build drive distributed storage device with FTP interface on Node.js.
 
+<center>
+![sloth-storage idea](https://raw.githubusercontent.com/antonfisher/antonfisher.github.io/master/images/posts/10-raspberry-pi-storage/sloth-storage-logo.png)
+</center>
+
 ## Features
+
 - distributes files on a bunch of USB-drives
 - keeps up file duplication for redundancy
 - provides FTP interface.
 
 ## Configuration example
+
 ```
 4Gb USB-drive -|     *-----------------------*
 4Gb USB-drive -|     |  S  T  O  R  A  G  E  |
