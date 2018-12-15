@@ -153,9 +153,10 @@ parseCliArgs(
         .on(Replicator.EVENTS.REPLICATION_FINISHED, () => hardware.ledIO.setBlink(false));
 
       application.devicesManager.on(DevicesManager.EVENTS.UTILIZATION_CHANGED, ({total, used, free, usedPercent}) => {
-        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_TOTAL, formatBytes(total));
-        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_USED, formatBytes(used));
-        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_FREE, formatBytes(free));
+        const r = hardware.selectorReplications.getValue();
+        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_TOTAL, formatBytes(total / r));
+        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_USED, formatBytes(used / r));
+        hardware.display.setBufferValue(SelectorDisplay.OPTIONS.CAPACITY_FREE, formatBytes(free / r));
         hardware.analogGaugeUtilization.setValue(usedPercent);
       });
 
