@@ -29,7 +29,7 @@
     "start": "node ./src/index.js",
     "mount": "node ./scripts/find-unmounted-devices.js",
     "mount:do": "node ./scripts/find-unmounted-devices.js --mount",
-    "umount:do": "node ./scripts/find-unmounted-devices.js",
+    "umount:do": "node ./scripts/find-unmounted-devices.js --umount",
     "debug": "node --inspect ./src/index.js",
     "test": "mocha tests/**",
     "test:watch": "mocha --inspect --watch tests/**",

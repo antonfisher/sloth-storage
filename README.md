@@ -22,93 +22,109 @@ The idea is to build drive distributed storage device with FTP interface on Node
 ```
 ... or 10Gb storage (2 copies of each file).
 
-
-## Modules Hierarchy
-```
-+--------+
-| daemon <------+
-+--------+      |
-                |
-          +-----+------+
-          | FTP server <----+
-          +------------+    |
-                            |
-+------------+    +---------+----------+
-| replicator <----> mergeFs API module |
-+---------^--+    +---^----------------+
-          |           |
-       +--+-----------+--+
-       | devices manager |
-       +-----------------+
-```
-
 ## Hardware
 
-### Installation:
+Tested with Raspberry Pi 3.
 
+Components:
+- 1 x RPi 3
+- 1 x Pimoroni Micro Dot pHAT with Included LED Modules - Red[ID:3248] = $29.95
+- 4 x USB 3.0 4-Port USB Hub Splitter Adapter Ultra Slim [ebay] = $16.40
+- 2 x DC 0-3V Analog Voltmeter Analogue Voltage panel = $8.56
+- 1 x 8GB Class 10 SD/MicroSD Memory Card - SD Adapter Included[ID:2692] = $9.95
+- 1 x USB OTG Host Cable - MicroB OTG male to A female[ID:1099] = $2.50
+- 1 x Mini Panel Mount SPDT Toggle Switch[ID:3221] = $0.95
+- 1 x Slim Metal Potentiometer Knob - 10mm Diameter x 10mm - T18[ID:2058] = $1.90
+- 1 x Solid Machined Metal Knob - 1" Diameter[ID:2056] = $3.95
+- 2 x Mini 8-Way Rotary Selector Switch - SP8T[ID:2925] = $3.90
+- 2 x led diode - red and yellow
+
+Box and indicators [blueprints](./blueprints).
+
+RPi PIN connections:
+- [pHAT](https://pinout.xyz/pinout/micro_dot_phat)
+- for selectors, gauges, leds and toggle switch look for `const PIN = ...` for each component's class:
+   [src/hardware](src/hardware).
+
+I used 3A power supply which enough just for 4 USB-drives.
+
+## Setup
+
+>**Disclaimer:** this is a proof of concept device and cannot be used as reliable place to store your data.
+
+1. Install [Raspbian](https://www.raspberrypi.org/downloads/raspbian/)
+   SSH and WiFi configuration [instruction](https://desertbot.io/blog/setup-pi-zero-w-headless-wifi)
+2. SSH to RPi
+   ([how to find RPi in the network](https://antonfisher.com/posts/2015/12/04/how-to-find-raspberry-pi-ip-address-dhcp/))
+3. Install dependencies:
+   ```bash
+   sudo su
+
+   # install deps
+   apt-get install -y gcc g++ make git vim htop;
+
+   # set timezone
+   echo "America/Los_Angeles" > /etc/timezone
+   dpkg-reconfigure tzdata
+
+   # install nodejs
+   curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+   apt install -y nodejs
+
+   # install application
+   git clone https://github.com/antonfisher/sloth-storage.git
+   cd sloth-storage
+   npm install
+   cd src/hardware
+   npm install
+   cd -
+
+   # display
+   curl -sS https://get.pimoroni.com/microdotphat | bash # https://pinout.xyz/pinout/micro_dot_phat
+```
+4. GPIO configuration:
 ```bash
-# install deps
-sudo apt-get install -y gcc g++ make git vim htop;
-
-# install nodejs
-sudo curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# install application
-git clone https://github.com/antonfisher/sloth-storage.git
-cd sloth-storage
-npm install
-cd src/hardware
-npm install
-cd -
-
-# display + gpio configuration
-curl -sS https://get.pimoroni.com/microdotphat | bash # https://pinout.xyz/pinout/micro_dot_phat
 sudo cat >/etc/udev/rules.d/20-gpiomem.rules <<EOF
 SUBSYSTEM=="bcm2835-gpiomem", KERNEL=="gpiomem", GROUP="gpio", MODE="0660"
 EOF
 sudo usermod -a -G gpio pi
 sudo usermod -a -G gpio root
-sudo echo "America/Los_Angeles" > /etc/timezone
-sudo dpkg-reconfigure tzdata
-```
+   ```
 
 ## Usage
 
+**Note:** RPi doesn't mount USB storage devices automatically.
+
+### Start application:
 ```bash
+# mount usb storage devices
+npm run mount # show available devices
+npm run mount:do # mount available devices
+
+# start application on RPi
+npm run rpi
+```
+
+### Connect to FTP server:
+```bash
+IP:7002
+# "Anonymous" user
+```
+
+### Useful commands:
+```bash
+# unmount all mounted usb storage devices
+npm run umount:do
+
+# show full help
+npm start -- --help
+
 # run only application
 npm start
 
 # set different device path (not /media/<USER>)
 npm start -- --devices-path <path>
-
-# show full help
-npm start -- --help
-
-# run on RPI
-npm start -- --rpi
 ```
-
-## Debug
-
-```bash
-# USB devices list
-blkid | grep "/dev/s"
-
-# find unmounted USB devices
-cd ./scripts
-./find-unmounted-devices.js
-
-# mount USB devices
-./find-unmounted-devices.js --mount
-```
-
-## Current stage
-- [x] research
-- [x] proof-of-concept building
-- [x] main codebase and tests
-- [x] hardware assembling
-- [ ] **run/debug**
 
 ## License
 MIT License. Free use and change.
